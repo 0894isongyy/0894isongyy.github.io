@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 22.5)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 22.8)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -392,7 +392,7 @@
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
         
-        <div class="version-text">版本 22.5</div>
+        <div class="version-text">版本 22.8</div>
         
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
@@ -1220,6 +1220,10 @@
     }
     
     function loseRage(p, isRed) { 
+        // Check for full rage protection
+        const currentRage = isRed ? p.rage.red : p.rage.blue;
+        if (currentRage >= 100) return; // Protected
+
         if (isRed) p.rage.red = Math.max(0, p.rage.red - 30); 
         else p.rage.blue = Math.max(0, p.rage.blue - 30); 
         
@@ -1325,17 +1329,15 @@
              if (isTutorialMode) {
                 return (this.id === 0) ? t.tutorialName : (this.id === 2 ? t.civilian : t.dummyName);
              } else {
-                 const charPrefix = (this.type === 'Odin' ? t.charOdin : t.charLoki);
-                 let baseName = `(${charPrefix}) `;
+                 let baseName = this.name;
                  if (this.name.startsWith("BOT-")) {
-                     baseName += `CPU${this.id}`;
-                 } else {
-                     baseName += this.name;
+                     baseName = `CPU${this.id}`;
                  }
                  
                  // Append Wins
                  const wins = matchScores[this.id] || 0;
-                 return `${baseName} - ${wins}${t.winSuffix}`;
+                 const crowns = "👑".repeat(wins);
+                 return wins > 0 ? `${baseName} ${crowns}` : baseName;
              }
         }
         refreshLabel() { if(this.labelSprite) { this.labelSprite.material.map.dispose(); this.labelSprite.material.map = createTextSprite(this.getDisplayName()).material.map; } if(this.brokenShieldIcon) { this.brokenShieldIcon.material.map.dispose(); this.brokenShieldIcon.material.map = createBrokenShieldTexture(); } if(this.targetLabel) { this.targetLabel.material.map.dispose(); this.targetLabel.material.map = createTextSprite(TRANSLATIONS[currentLang].targetLocked).material.map; } }
@@ -1551,7 +1553,7 @@
                         Network.broadcast({ type: 'GAME_OVER', isFinal: false, autoRestart: true, winnerName: wName, scores: matchScores });
                         setTimeout(() => { if(gameState !== 'IDLE') Network.hostStartGame(); }, 5000);
                     } else if (!isMultiplayer) {
-                        startRoundTransition(wName);
+                        showAutoRestartMsg(wName);
                         setTimeout(() => window.restartRound(), 5000);
                     }
                 }
@@ -1714,10 +1716,10 @@
         let configs = customConfigs;
         if (!configs) {
             configs = [
-                { id: 0, x: 0, y: 50, z: 120, name: (selectedPlayerType === 'Loki' ? "洛基" : "奧丁"), type: selectedPlayerType },
-                { id: 1, x: 0, y: 50, z: -110, name: "洛基", type: 'Loki' },
-                { id: 2, x: 110, y: 50, z: 0, name: "奧丁A", type: 'Odin' },
-                { id: 3, x: -110, y: 50, z: 0, name: "奧丁B", type: 'Odin' }
+                { id: 0, x: 0, y: 50, z: 160, name: (selectedPlayerType === 'Loki' ? "洛基" : "奧丁"), type: selectedPlayerType },
+                { id: 1, x: 0, y: 50, z: -160, name: "洛基", type: 'Loki' },
+                { id: 2, x: 160, y: 50, z: 0, name: "奧丁A", type: 'Odin' },
+                { id: 3, x: -160, y: 50, z: 0, name: "奧丁B", type: 'Odin' }
             ];
             myPlayerIndex = 0; isMultiplayer = false;
             if (gameState === 'IDLE' || Object.keys(matchScores).length === 0) { matchScores = {}; configs.forEach(p => matchScores[p.id] = 0); }
@@ -1725,7 +1727,7 @@
         players = configs.map(cfg => new Odin(cfg)); updateText(); updateHPUI();
     }
     
-    function initWorld() { scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 200, 2500); scene.add(new THREE.AmbientLight(0xffffff, 0.5)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 400, 100); sun.castShadow = true; sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048; const d = 500; sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d; scene.add(sun); const arena = new THREE.Mesh(new THREE.BoxGeometry(240, 15, 240), new THREE.MeshPhongMaterial({ color: 0x88bb88 })); arena.position.y = -15; arena.receiveShadow = true; scene.add(arena); for(let i=0; i<12; i++) { const h = 700 + Math.random()*400; const m = new THREE.Mesh(new THREE.BoxGeometry(300, h, 300), new THREE.MeshPhongMaterial({ color: 0xcc99aa })); const a = (i/12)*Math.PI*2; m.position.set(Math.cos(a)*1200, h/2 - 1200, Math.sin(a)*1200); scene.add(m); const cap = new THREE.Mesh(new THREE.BoxGeometry(305, 70, 305), new THREE.MeshPhongMaterial({ color: 0xffffff })); cap.position.set(m.position.x, m.position.y + h/2, m.position.z); scene.add(cap); } }
+    function initWorld() { scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 200, 2500); scene.add(new THREE.AmbientLight(0xffffff, 0.5)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 400, 100); sun.castShadow = true; sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048; const d = 500; sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d; scene.add(sun); const arena = new THREE.Mesh(new THREE.BoxGeometry(300, 15, 300), new THREE.MeshPhongMaterial({ color: 0x88bb88 })); arena.position.y = -15; arena.receiveShadow = true; scene.add(arena); for(let i=0; i<12; i++) { const h = 700 + Math.random()*400; const m = new THREE.Mesh(new THREE.BoxGeometry(300, h, 300), new THREE.MeshPhongMaterial({ color: 0xcc99aa })); const a = (i/12)*Math.PI*2; m.position.set(Math.cos(a)*1200, h/2 - 1200, Math.sin(a)*1200); scene.add(m); const cap = new THREE.Mesh(new THREE.BoxGeometry(305, 70, 305), new THREE.MeshPhongMaterial({ color: 0xffffff })); cap.position.set(m.position.x, m.position.y + h/2, m.position.z); scene.add(cap); } }
     
     function initBattle(customConfigs) { 
         const v = document.getElementById('viewport'); const oldCanvas = v.querySelector('canvas'); if (oldCanvas) { v.removeChild(oldCanvas); } 
