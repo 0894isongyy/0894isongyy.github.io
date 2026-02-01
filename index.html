@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 22.8)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 22.5)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -1226,8 +1226,6 @@
         if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
     }
 
-    // ... [Keep focusOnAction, cinematicIntro, createExplosion, etc. unchanged] ...
-    
     // --- INTEGRATING HELPER CLASSES FROM ORIGINAL ---
     class HitParticle { constructor(pos, color) { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true }); this.mesh = new THREE.Mesh(SHARED_BOX_GEO, mat); this.mesh.position.copy(pos); const a = Math.random() * Math.PI * 2, s = 5 + Math.random() * 5; this.velocity = new THREE.Vector3(Math.cos(a) * s, 4 + Math.random() * 6, Math.sin(a) * s); this.life = 1.0; scene.add(this.mesh); } update(dt) { this.mesh.position.add(this.velocity.clone().multiplyScalar(dt)); this.velocity.y -= 15 * dt; this.life -= dt * 1.5; this.mesh.material.opacity = this.life; if (this.life <= 0) { if(this.mesh.parent) scene.remove(this.mesh); if(this.mesh.material) this.mesh.material.dispose(); return false; } return true; } }
     class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
@@ -1539,20 +1537,21 @@
                 if (winner) {
                     if (!matchScores[winner.id]) matchScores[winner.id] = 0;
                     matchScores[winner.id]++;
-                    UI.updateScoreboard();
+                    // Update labels immediately to show new score
+                    players.forEach(p => p.refreshLabel()); 
                 }
                 if (winner && matchScores[winner.id] >= targetWins) {
                     showMsg(`${t.finalVictory}<br>${winner.getDisplayName()}`, true);
                     if (isMultiplayer && Online.isHost) {
-                        Network.broadcast({ type: 'GAME_OVER', msg: 'MATCH ENDED', isFinal: true, winnerName: winner.getDisplayName() });
+                        Network.broadcast({ type: 'GAME_OVER', msg: 'MATCH ENDED', isFinal: true, winnerName: winner.getDisplayName(), scores: matchScores });
                     }
                 } else {
                     const wName = winner ? winner.getDisplayName() : "Draw";
                     if (isMultiplayer && Online.isHost) {
-                        Network.broadcast({ type: 'GAME_OVER', isFinal: false, autoRestart: true, winnerName: wName });
+                        Network.broadcast({ type: 'GAME_OVER', isFinal: false, autoRestart: true, winnerName: wName, scores: matchScores });
                         setTimeout(() => { if(gameState !== 'IDLE') Network.hostStartGame(); }, 5000);
                     } else if (!isMultiplayer) {
-                        showAutoRestartMsg(wName);
+                        startRoundTransition(wName);
                         setTimeout(() => window.restartRound(), 5000);
                     }
                 }
@@ -1704,6 +1703,9 @@
 
     window.startBattle = function(customConfigs = null) { 
         document.getElementById('game-msg').style.display = 'none'; // Ensure hidden on restart
+        // Reset move display just in case
+        hideMove();
+        
         UI.show('game-ui'); 
         initBattle(customConfigs); 
     };
@@ -1783,8 +1785,17 @@
         document.getElementById('game-msg').style.display = 'none'; document.getElementById('turn-hint').style.display = 'none'; 
         currentDemoId++; if (scene) { while(scene.children.length > 0){ const o = scene.children[0]; if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); scene.remove(o); } }
         players.length = 0; activeLightnings.length = 0; activeParticles.length = 0; activeProjectiles.length = 0; 
-        playerRage = { red: 0, blue: 0 }; gameState = 'IDLE'; matchScores = {}; document.getElementById('scoreboard').style.display = 'none'; UI.showMenu(); hideCardDescription();
-        if(Online.peer) Online.peer.destroy(); Online.peer = null; Online.playerMap = []; Online.connections = []; Online.hostConn = null;
+        playerRage = { red: 0, blue: 0 }; gameState = 'IDLE'; matchScores = {}; 
+        document.getElementById('scoreboard').style.display = 'none'; // Ensure scoreboard is hidden on reset
+        UI.showMenu();
+        hideCardDescription();
+        
+        // Clean Network
+        if(Online.peer) Online.peer.destroy();
+        Online.peer = null;
+        Online.playerMap = [];
+        Online.connections = [];
+        Online.hostConn = null;
     };
     
     window.askOracle = async function() { 
@@ -1795,16 +1806,45 @@
 
     function showMsg(t, isFinal = false) { 
         const el = document.getElementById('game-msg'); const btnText = isFinal ? TRANSLATIONS[currentLang].finalMenu : TRANSLATIONS[currentLang].restart; const btnAction = isFinal ? "window.resetGame()" : "window.restartRound()";
-        let scoreHtml = ''; if (players.length > 0) { scoreHtml = '<div style="margin-bottom:15px; border-top:1px solid #555; padding-top:10px; width:100%;">'; players.forEach(p => { const wins = matchScores[p.id] || 0; scoreHtml += `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ddd; margin-bottom:4px;"><span>${p.getDisplayName()}</span><span style="color:#ffcc00; font-weight:bold;">${wins} ${TRANSLATIONS[currentLang].winSuffix}</span></div>`; }); scoreHtml += '</div>'; }
+        
+        // Modal is now only for final match victory or errors, intermediate rounds are handled by announcer
+        if (!isFinal) {
+            // Should not happen if logic is correct, but just in case fallback
+            // Hide modal just to be safe
+            el.style.display = 'none';
+            return;
+        }
+
+        // Show match winner
+        let scoreHtml = '';
+        if (players.length > 0) {
+             // Optional: Show final scoreboard in modal
+        }
+
         let btnHtml = `<button class="btn-gold" style="margin-top:10px;" onclick="${btnAction}">${btnText}</button>`; if (isMultiplayer && !Online.isHost && !isFinal) { btnHtml = `<div style="font-size:0.9rem; color:#aaa; margin-top:10px;">${TRANSLATIONS[currentLang].waitingHost}</div>`; }
-        el.innerHTML = `<span>${t}</span><br>${scoreHtml}${btnHtml}`; el.style.display = 'flex'; document.getElementById('scoreboard').style.display = 'none';
+        el.innerHTML = `<span>${t}</span><br>${scoreHtml}${btnHtml}`; el.style.display = 'flex'; 
     }
 
+    // New Function to handle round transition without modal
+    function startRoundTransition(winnerName) {
+        // Hide timer
+        const timerEl = document.getElementById('timer');
+        if (timerEl) timerEl.style.display = 'none';
+
+        // Show Winner
+        const t = TRANSLATIONS[currentLang];
+        showMove(`${t.roundWinner} ${winnerName}`);
+        
+        // Delay then show sync message
+        setTimeout(() => {
+            showMove(t.nextRoundIn);
+        }, 2000);
+    }
+
+    // Deprecated for intermediate rounds, but kept if needed logic reference
     function showAutoRestartMsg(winnerName) {
-        const el = document.getElementById('game-msg'); const t = TRANSLATIONS[currentLang];
-        let scoreHtml = '<div style="margin:15px 0; border-top:1px solid #555; padding-top:10px; width:100%; text-align:left;">'; players.forEach(p => { const wins = matchScores[p.id] || 0; scoreHtml += `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ddd; margin-bottom:4px;"><span>${p.getDisplayName()}</span><span style="color:#ffcc00; font-weight:bold;">${wins} ${TRANSLATIONS[currentLang].winSuffix}</span></div>`; }); scoreHtml += '</div>';
-        let count = 5; el.innerHTML = `<span style="font-size:1.5rem; color:#ffcc00;">${t.roundWinner} ${winnerName}</span>${scoreHtml}<div style="font-size:1rem; color:#fff;">${t.nextRoundIn} <span id="auto-restart-cnt" style="font-size:1.5rem; font-weight:bold; color:#55ccff;">5</span></div>`; el.style.display = 'flex'; document.getElementById('scoreboard').style.display = 'none';
-        const intv = setInterval(() => { count--; const cntEl = document.getElementById('auto-restart-cnt'); if(cntEl) cntEl.innerText = count; if(count <= 0) clearInterval(intv); }, 1000);
+         // Logic moved to startRoundTransition to avoid modal
+         startRoundTransition(winnerName);
     }
 
     window.restartRound = function() {
