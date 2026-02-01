@@ -220,15 +220,10 @@
             white-space: normal; width: auto;
         }
 
-        #status-log {
-            position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: var(--ui-max-width); height: 42px; background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 153, 204, 0.4); border-radius: 8px; padding: 5px; font-size: 0.8rem; overflow-y: auto;
-            pointer-events: auto; color: #eee; backdrop-filter: blur(3px); z-index: 30; text-align: left;
-        }
+        /* 移除 status-log */
         
         #card-description {
-            position: absolute; bottom: 160px; /* Moved up 45px from 115px */
+            position: absolute; bottom: 160px; 
             left: 0; width: 100%;
             text-align: center; color: #ffeb3b; font-size: 0.85rem; font-weight: bold;
             text-shadow: 0 0 5px #000; pointer-events: none;
@@ -238,7 +233,7 @@
         }
 
         #bottom-ui-container {
-            position: absolute; bottom: 30px; /* Moved up 30px from 0 */
+            position: absolute; bottom: 30px; 
             left: 0; width: 100%;
             display: flex; justify-content: center;
             padding: 10px 0 20px 0; 
@@ -313,7 +308,7 @@
             border: 2px solid var(--primary-gold); 
             z-index: 3000;
             text-align: center; width: 80%; 
-            max-width: 280px; /* 縮小最大寬度 (原 400px -> 280px, 約 -30%) */
+            max-width: 280px; /* 縮小最大寬度 */
             backdrop-filter: blur(10px);
             flex-direction: column; align-items: center; 
             gap: 10px; /* 縮小間距 */
@@ -589,6 +584,7 @@
             cardNames: { 0: "物攻⚔️", 1: "魔法🪄", 2: "反擊🛡️", 3: "反射💎", 4: "防禦🧱", 5: "奧義🔥", swap: "空間🌀" },
             tutCardNames: { 5: "物奧🔥", 6: "魔奧⚡" },
             victory: "勝利！", gameOver: "回合結束", restart: "重新開始",
+            finalVictory: "豬林匹斯誔生了新的王！", finalMenu: "回到主選單",
             swapSkill: "空間調換", counterSkill: "防禦反擊",
             targetLocked: "(目標鎖定中)", dead: "芭比Q啦", fatigue: "疲勞", rage: "怒氣",
             defendFatigue: "防禦疲勞中", defend: "防禦", tired: "力盡🧱",
@@ -614,7 +610,7 @@
                 4: "大幅減傷，但增加疲勞值",
                 5: { "Odin": "消耗全部怒氣，造成毀滅性連擊", "Loki": "消耗全部怒氣，對單一目標連續衝撞" }
             },
-            logBlock: "成功防禦", logCounter: "的反擊在奧義面前失效了！",
+            logBlock: "格檔！", logCounter: "的反擊在奧義面前失效了！",
             logReflect: "的反射在奧義面前失效了！", logHit: "的攻擊！",
             playerSuffix: " (我)", cpuPrefix: "(CPU) ",
             tutorialName: "教學", dummyName: "假人", civilian: "路人",
@@ -672,7 +668,7 @@
                 4: "Reduces damage significantly, adds Fatigue",
                 5: { "Odin": "Consumes Max Rage for devastating combo", "Loki": "Consumes Max Rage to rush target repeatedly" }
             },
-            logBlock: "blocked", logCounter: "'s counter failed against Ultimate!",
+            logBlock: "Blocked", logCounter: "'s counter failed against Ultimate!",
             logReflect: "'s reflect failed against Ultimate!", logHit: "'s attack!",
             playerSuffix: " (Me)", cpuPrefix: "(CPU) ",
             tutorialName: "Teacher", dummyName: "Dummy", civilian: "Civilian",
@@ -780,11 +776,14 @@
         
         const div = document.createElement('div');
         div.className = 'damage-popup';
-        // Add minus sign if numeric, else keep as is (e.g. Blocked)
+        // Check if amount is numeric or text like "Blocked"
+        // If translation "格檔！" is passed, it is not a number.
         if (typeof amount === 'number') {
             div.innerText = "-" + amount;
+            div.style.color = "#ff0000"; // Red for damage
         } else {
             div.innerText = amount;
+            div.style.color = "#ffff00"; // Yellow for blocked/text
         }
         
         // Initial Position (will be updated in loop, but we set style once)
@@ -1128,10 +1127,10 @@
             
             // Assign roles based on Online.playerMap
             const configs = [
-                { id: 0, x: 0, y: 50, z: 120, name: Online.playerMap[0].name, type: Online.playerMap[0].type }, // Host
-                { id: 1, x: 0, y: 50, z: -110, name: Online.playerMap[1].name, type: Online.playerMap[1].type },
-                { id: 2, x: 110, y: 50, z: 0, name: Online.playerMap[2].name, type: Online.playerMap[2].type },
-                { id: 3, x: -110, y: 50, z: 0, name: Online.playerMap[3].name, type: Online.playerMap[3].type }
+                { id: 0, x: 0, y: 50, z: 200, name: Online.playerMap[0].name, type: Online.playerMap[0].type }, // Host (Moved to 200)
+                { id: 1, x: 0, y: 50, z: -200, name: Online.playerMap[1].name, type: Online.playerMap[1].type },
+                { id: 2, x: 200, y: 50, z: 0, name: Online.playerMap[2].name, type: Online.playerMap[2].type },
+                { id: 3, x: -200, y: 50, z: 0, name: Online.playerMap[3].name, type: Online.playerMap[3].type }
             ];
 
             // Reset scores on fresh start
@@ -1220,9 +1219,9 @@
     }
     
     function loseRage(p, isRed) { 
-        // Check for full rage protection
+        // Check for full rage protection (霸體)
         const currentRage = isRed ? p.rage.red : p.rage.blue;
-        if (currentRage >= 100) return; // Protected
+        if (currentRage >= 100) return; 
 
         if (isRed) p.rage.red = Math.max(0, p.rage.red - 30); 
         else p.rage.blue = Math.max(0, p.rage.blue - 30); 
@@ -1261,7 +1260,9 @@
             this.aura = new SuperAura(this.group);
             this.ballRotationMultiplier = 1.0; 
 
-            const hitGeo = new THREE.BoxGeometry(14, 25, 14); const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }); // FIXED: depthWrite: false
+            // FIX: Added colorWrite: false to prevent occluding names/bars
+            const hitGeo = new THREE.BoxGeometry(14, 25, 14); 
+            const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }); 
             this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 5; this.group.add(this.hitBox);
             const uiData = createUnitUISprite(); this.uiSprite = uiData.sprite; this.uiCtx = uiData.ctx; this.uiTexture = uiData.texture;
             this.uiSprite.position.y = 8.5; this.group.add(this.uiSprite);
@@ -1317,7 +1318,9 @@
             const centralRune = this.createAlgizRune(); centralRune.scale.set(2, 2, 2); this.hexShield.add(centralRune);
             this.hexShield.position.set(0, 3, 3); this.hexShield.visible = false; this.group.add(this.hexShield);
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
-            this.selectionRing = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 16, 64), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9 }));
+            
+            // FIX: Added depthWrite: false to selectionRing
+            this.selectionRing = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 16, 64), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, depthWrite: false }));
             this.selectionRing.rotation.x = Math.PI/2; this.selectionRing.position.y = -1.5; this.selectionRing.visible = false; this.group.add(this.selectionRing);
             
             this.targetLabel = createTextSprite(TRANSLATIONS[currentLang].targetLocked); this.targetLabel.scale.set(6, 1.5, 1); this.targetLabel.position.y = -6; this.targetLabel.visible = false; this.group.add(this.targetLabel);
@@ -1336,8 +1339,10 @@
                  
                  // Append Wins
                  const wins = matchScores[this.id] || 0;
-                 const crowns = "👑".repeat(wins);
-                 return wins > 0 ? `${baseName} ${crowns}` : baseName;
+                 if (wins > 0) {
+                     return `${baseName} ${"👑".repeat(wins)}`;
+                 }
+                 return baseName;
              }
         }
         refreshLabel() { if(this.labelSprite) { this.labelSprite.material.map.dispose(); this.labelSprite.material.map = createTextSprite(this.getDisplayName()).material.map; } if(this.brokenShieldIcon) { this.brokenShieldIcon.material.map.dispose(); this.brokenShieldIcon.material.map = createBrokenShieldTexture(); } if(this.targetLabel) { this.targetLabel.material.map.dispose(); this.targetLabel.material.map = createTextSprite(TRANSLATIONS[currentLang].targetLocked).material.map; } }
@@ -1389,7 +1394,7 @@
                 if (fatigueAdd > 0) t.fatigue = Math.min(150, t.fatigue + fatigueAdd); 
             } 
             t.blockedInTurn = true; SoundEngine.play('ding'); 
-            spawnDamageNumber(t, "Blocked");
+            spawnDamageNumber(t, txt.logBlock); // Use translated Blocked
             showMove(`[${t.getDisplayName()}] ${txt.logBlock}!`);
             updateHPUI(); return; 
         } 
@@ -1493,8 +1498,28 @@
                 }
             } 
             if (cid === 4) { p.fatigue = Math.min(150, p.fatigue + 75); updateHPUI(); } 
-            if (t && t.alive && cid !== 3) t.face(p.group.position); 
-            if (cid === 4) { await focusOnAction(p, null, 400); await sleep(400); } 
+            
+            // --- FIX: Face nearest enemy instead of self ---
+            if (p.id === t.id) {
+                // If targeting self (e.g. Defend/Counter), find nearest enemy to face
+                let nearest = null;
+                let minDst = 99999;
+                players.forEach(o => {
+                    if (o.id !== p.id && o.alive) {
+                        const d = p.group.position.distanceTo(o.group.position);
+                        if (d < minDst) { minDst = d; nearest = o; }
+                    }
+                });
+                if (nearest) p.face(nearest.group.position);
+                else p.face(new THREE.Vector3(0, 50, 0)); // Fallback center
+            } else {
+                if (t && t.alive && cid !== 3) t.face(p.group.position); 
+            }
+
+            if (cid === 4) { 
+                // Ensure facing nearest enemy for drama
+                await focusOnAction(p, null, 400); await sleep(400); 
+            } 
             else if (cid === 2) { await focusOnAction(p, null, 400); await sleep(400); } 
             else if (cid === 3) { 
                 p.hexShield.visible = true; SoundEngine.play('counter'); 
@@ -1705,9 +1730,6 @@
 
     window.startBattle = function(customConfigs = null) { 
         document.getElementById('game-msg').style.display = 'none'; // Ensure hidden on restart
-        // Reset move display just in case
-        hideMove();
-        
         UI.show('game-ui'); 
         initBattle(customConfigs); 
     };
@@ -1716,10 +1738,10 @@
         let configs = customConfigs;
         if (!configs) {
             configs = [
-                { id: 0, x: 0, y: 50, z: 160, name: (selectedPlayerType === 'Loki' ? "洛基" : "奧丁"), type: selectedPlayerType },
-                { id: 1, x: 0, y: 50, z: -160, name: "洛基", type: 'Loki' },
-                { id: 2, x: 160, y: 50, z: 0, name: "奧丁A", type: 'Odin' },
-                { id: 3, x: -160, y: 50, z: 0, name: "奧丁B", type: 'Odin' }
+                { id: 0, x: 0, y: 50, z: 200, name: (selectedPlayerType === 'Loki' ? "洛基" : "奧丁"), type: selectedPlayerType },
+                { id: 1, x: 0, y: 50, z: -200, name: "洛基", type: 'Loki' },
+                { id: 2, x: 200, y: 50, z: 0, name: "奧丁A", type: 'Odin' },
+                { id: 3, x: -200, y: 50, z: 0, name: "奧丁B", type: 'Odin' }
             ];
             myPlayerIndex = 0; isMultiplayer = false;
             if (gameState === 'IDLE' || Object.keys(matchScores).length === 0) { matchScores = {}; configs.forEach(p => matchScores[p.id] = 0); }
@@ -1727,7 +1749,7 @@
         players = configs.map(cfg => new Odin(cfg)); updateText(); updateHPUI();
     }
     
-    function initWorld() { scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 200, 2500); scene.add(new THREE.AmbientLight(0xffffff, 0.5)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 400, 100); sun.castShadow = true; sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048; const d = 500; sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d; scene.add(sun); const arena = new THREE.Mesh(new THREE.BoxGeometry(300, 15, 300), new THREE.MeshPhongMaterial({ color: 0x88bb88 })); arena.position.y = -15; arena.receiveShadow = true; scene.add(arena); for(let i=0; i<12; i++) { const h = 700 + Math.random()*400; const m = new THREE.Mesh(new THREE.BoxGeometry(300, h, 300), new THREE.MeshPhongMaterial({ color: 0xcc99aa })); const a = (i/12)*Math.PI*2; m.position.set(Math.cos(a)*1200, h/2 - 1200, Math.sin(a)*1200); scene.add(m); const cap = new THREE.Mesh(new THREE.BoxGeometry(305, 70, 305), new THREE.MeshPhongMaterial({ color: 0xffffff })); cap.position.set(m.position.x, m.position.y + h/2, m.position.z); scene.add(cap); } }
+    function initWorld() { scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 200, 2500); scene.add(new THREE.AmbientLight(0xffffff, 0.5)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 400, 100); sun.castShadow = true; sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048; const d = 500; sun.shadow.camera.left = -d; sun.shadow.camera.right = d; sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d; scene.add(sun); const arena = new THREE.Mesh(new THREE.BoxGeometry(375, 15, 375), new THREE.MeshPhongMaterial({ color: 0x88bb88 })); arena.position.y = -15; arena.receiveShadow = true; scene.add(arena); for(let i=0; i<12; i++) { const h = 700 + Math.random()*400; const m = new THREE.Mesh(new THREE.BoxGeometry(300, h, 300), new THREE.MeshPhongMaterial({ color: 0xcc99aa })); const a = (i/12)*Math.PI*2; m.position.set(Math.cos(a)*1200, h/2 - 1200, Math.sin(a)*1200); scene.add(m); const cap = new THREE.Mesh(new THREE.BoxGeometry(305, 70, 305), new THREE.MeshPhongMaterial({ color: 0xffffff })); cap.position.set(m.position.x, m.position.y + h/2, m.position.z); scene.add(cap); } }
     
     function initBattle(customConfigs) { 
         const v = document.getElementById('viewport'); const oldCanvas = v.querySelector('canvas'); if (oldCanvas) { v.removeChild(oldCanvas); } 
