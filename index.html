@@ -306,10 +306,17 @@
 
         #game-msg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 1.2rem; color: #fff; display: none; background: rgba(0,0,0,0.95);
-            padding: 25px 40px; border-radius: 20px; border: 3px solid var(--primary-gold); z-index: 3000;
-            text-align: center; width: 80%; max-width: 400px; backdrop-filter: blur(10px);
-            flex-direction: column; align-items: center; gap: 15px;
+            font-size: 1rem; /* 縮小字體 */
+            color: #fff; display: none; background: rgba(0,0,0,0.95);
+            padding: 15px 25px; /* 縮小內距 */
+            border-radius: 15px; /* 縮小圓角 */
+            border: 2px solid var(--primary-gold); 
+            z-index: 3000;
+            text-align: center; width: 80%; 
+            max-width: 280px; /* 縮小最大寬度 (原 400px -> 280px, 約 -30%) */
+            backdrop-filter: blur(10px);
+            flex-direction: column; align-items: center; 
+            gap: 10px; /* 縮小間距 */
         }
 
         #tutorial-ui {
@@ -945,6 +952,7 @@
         updateScoreboard() {
             const sb = document.getElementById('scoreboard');
             if (isTutorialMode) { sb.style.display = 'none'; return; }
+            // Do NOT display block here, only populate. It is shown at round end manually.
             sb.innerHTML = `<h3 style="margin:0 0 10px 0; color:#ff99cc; border-bottom:1px solid #555;">${TRANSLATIONS[currentLang].currentRound}</h3>`;
             players.forEach(p => {
                 const wins = matchScores[p.id] || 0;
@@ -1000,15 +1008,18 @@
                     const pIdx = Online.playerMap.findIndex(x => x.peerId === conn.peer);
                     if (pIdx !== -1) {
                         const p = Online.playerMap[pIdx];
+                        // 如果狀態是 IDLE (大廳)，則直接移除玩家
                         if (gameState === 'IDLE') {
                             Online.playerMap.splice(pIdx, 1);
                             Online.connections = Online.connections.filter(c => c !== conn);
                             Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
                             UI.updateLobby(Online.roomCode, Online.playerMap);
                         } else {
+                            // 遊戲中：切換為 CPU
                             p.isCpu = true;
                             p.name += " (CPU)";
                             Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
+                            log(`${p.name} disconnected, AI takeover`);
                         }
                     }
                 });
@@ -1032,6 +1043,7 @@
                 const conn = Online.peer.connect(APP_ID_PREFIX + code);
                 conn.on('open', () => {
                     Online.hostConn = conn;
+                    // Send character type here
                     conn.send({type: 'JOIN_REQUEST', name: name, characterType: selectedPlayerType});
                 });
                 conn.on('data', (data) => Network.handleClientData(data));
@@ -1042,11 +1054,13 @@
         },
         handleHostData(conn, data) {
             if(data.type === 'JOIN_REQUEST') {
+                // Read type from request
                 const pType = data.characterType || 'Odin';
                 const newP = { name: data.name, isHost: false, peerId: conn.peer, isCpu: false, type: pType };
                 Online.playerMap.push(newP);
                 Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
             } else if (data.type === 'ACTION_SUBMIT') {
+                // Client submitted action
                 const senderIdx = Online.playerMap.findIndex(p => p.peerId === conn.peer);
                 if(senderIdx !== -1 && players[senderIdx]) {
                     players[senderIdx].action = data.action;
@@ -1062,10 +1076,11 @@
                 isMultiplayer = true;
                 if (data.scores) matchScores = data.scores;
                 if (data.targetWins) targetWins = data.targetWins;
-                window.startBattle(data.configs);
+                window.startBattle(data.configs); // Use host configs
             } else if (data.type === 'TURN_START') {
-                startTurn();
+                startTurn(); // Just UI reset
             } else if (data.type === 'TURN_RESOLVE') {
+                // Apply actions from host
                 data.actions.forEach((act, idx) => {
                     if(players[idx]) players[idx].action = act;
                 });
@@ -1082,12 +1097,14 @@
         },
         broadcast(msg) {
             Online.connections.forEach(c => { if(c.open) c.send(msg); });
+            // Host also handles it locally if needed, but usually host calls functions directly
             if(msg.type === 'LOBBY_UPDATE') UI.updateLobby(Online.roomCode, Online.playerMap);
         },
         sendHost(msg) {
             if(Online.hostConn && Online.hostConn.open) Online.hostConn.send(msg);
         },
         hostStartGame() {
+            // Fill slots with CPU
             while(Online.playerMap.length < 4) {
                 const isLoki = Math.random() > 0.5;
                 Online.playerMap.push({ 
@@ -1095,25 +1112,32 @@
                     isHost: false, 
                     peerId: 'cpu-'+Math.random(), 
                     isCpu: true,
-                    type: isLoki ? 'Loki' : 'Odin'
+                    type: isLoki ? 'Loki' : 'Odin' // Randomize CPU
                 });
             }
+            
+            // Assign roles based on Online.playerMap
             const configs = [
-                { id: 0, x: 0, y: 50, z: 120, name: Online.playerMap[0].name, type: Online.playerMap[0].type },
+                { id: 0, x: 0, y: 50, z: 120, name: Online.playerMap[0].name, type: Online.playerMap[0].type }, // Host
                 { id: 1, x: 0, y: 50, z: -110, name: Online.playerMap[1].name, type: Online.playerMap[1].type },
                 { id: 2, x: 110, y: 50, z: 0, name: Online.playerMap[2].name, type: Online.playerMap[2].type },
                 { id: 3, x: -110, y: 50, z: 0, name: Online.playerMap[3].name, type: Online.playerMap[3].type }
             ];
+
+            // Reset scores on fresh start
             if (Object.keys(matchScores).length === 0 || gameState === 'IDLE') {
                 matchScores = {};
                 configs.forEach(p => matchScores[p.id] = 0);
             }
+
+            // Notify everyone
             Online.playerMap.forEach((p, idx) => {
                 if(p.isHost) {
                     myPlayerIndex = 0;
                     isMultiplayer = true;
                     window.startBattle(configs);
                 } else if (!p.isCpu) {
+                    // Send specific index to each client
                     const conn = Online.connections.find(c => c.peer === p.peerId);
                     if(conn) conn.send({ type: 'GAME_START', configs: configs, myIndex: idx, scores: matchScores, targetWins: targetWins });
                 }
@@ -1121,10 +1145,13 @@
         }
     };
 
+    // (Helper functions for Three.js objects etc. remain same as stable version)
+    // ... [Previous Helper Functions like createUnitUISprite, etc. are implicitly here] ...
+
     function showCardDescription(index) {
         const descEl = document.getElementById('card-description');
         const t = TRANSLATIONS[currentLang];
-        const p = players[myPlayerIndex];
+        const p = players[myPlayerIndex]; // Use local player
         let desc = "";
         if (!p) return;
         if (index === 2 || index === 5) desc = t.cardDescs[index][p.type];
@@ -1139,15 +1166,18 @@
 
     function updateHPUI() {
         const t = TRANSLATIONS[currentLang];
-        const p = players[myPlayerIndex]; if (!p) return;
+        const p = players[myPlayerIndex]; if (!p) return; // UI reflects MY player
+
         if (!isTutorialMode) {
             const hpLine = document.getElementById('hp-line'), fatLine = document.getElementById('fatigue-line');
             const rageLine = document.getElementById('rage-line'), defBtn = document.getElementById('defend-card'), superBtn = document.getElementById('super-card');
             if(hpLine) hpLine.innerText = `HP: ${p.hp}/${p.maxHP}`;
             if(fatLine) { fatLine.innerText = `${t.fatigue}: ${p.fatigue}%`; fatLine.style.color = p.fatigue >= 100 ? "#ff0000" : "#ffaa00"; }
+            
             const curRage = Math.floor(Math.max(p.rage.red, p.rage.blue));
             if(rageLine) { rageLine.innerText = `${t.rage}: ${curRage}%`; rageLine.style.color = p.rage.red > p.rage.blue ? "#ff5555" : (p.rage.blue > p.rage.red ? "#55ccff" : "#ffaa00"); }
             if (defBtn) { if (p.fatigue >= 100) { defBtn.classList.add('disabled'); defBtn.innerText = t.tired; } else { defBtn.classList.remove('disabled'); defBtn.innerText = t.cardNames[4]; } }
+            
             if (superBtn) {
                 superBtn.className = "card super"; 
                 if (curRage >= 99) {
@@ -1157,18 +1187,24 @@
                 } else { superBtn.style.display = 'none'; }
             }
         }
+
         players.forEach(pl => { 
             if (pl.selectionRing) pl.selectionRing.visible = (selectedTargetId === pl.id); 
             if (pl.updateLabel) pl.updateLabel(); 
             if (pl.brokenShieldIcon) { pl.brokenShieldIcon.visible = pl.showBrokenShield; }
         });
+        
         UI.updateScoreboard();
     }
 
     function gainRage(p, isRed, amt) { 
+        // Modified to use object property primarily
         if (isRed) { p.rage.blue = 0; p.rage.red = Math.min(100, p.rage.red + amt); } 
         else { p.rage.red = 0; p.rage.blue = Math.min(100, p.rage.blue + amt); } 
+        
+        // Sync global if P0 (for legacy compatibility)
         if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
+        
         updateHPUI(); 
         if(p.updateLabel) p.updateLabel(); 
     }
@@ -1176,9 +1212,13 @@
     function loseRage(p, isRed) { 
         if (isRed) p.rage.red = Math.max(0, p.rage.red - 30); 
         else p.rage.blue = Math.max(0, p.rage.blue - 30); 
+        
         if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
     }
 
+    // ... [Keep focusOnAction, cinematicIntro, createExplosion, etc. unchanged] ...
+    
+    // --- INTEGRATING HELPER CLASSES FROM ORIGINAL ---
     class HitParticle { constructor(pos, color) { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true }); this.mesh = new THREE.Mesh(SHARED_BOX_GEO, mat); this.mesh.position.copy(pos); const a = Math.random() * Math.PI * 2, s = 5 + Math.random() * 5; this.velocity = new THREE.Vector3(Math.cos(a) * s, 4 + Math.random() * 6, Math.sin(a) * s); this.life = 1.0; scene.add(this.mesh); } update(dt) { this.mesh.position.add(this.velocity.clone().multiplyScalar(dt)); this.velocity.y -= 15 * dt; this.life -= dt * 1.5; this.mesh.material.opacity = this.life; if (this.life <= 0) { if(this.mesh.parent) scene.remove(this.mesh); if(this.mesh.material) this.mesh.material.dispose(); return false; } return true; } }
     class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
     class SuperAura { constructor(p) { this.active=false; this.g=new THREE.Group(); this.g.position.y=2.5; p.add(this.g); this.core=new THREE.Mesh(new THREE.IcosahedronGeometry(3,1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.3,blending:2})); this.g.add(this.core); this.spikes=new THREE.Mesh(new THREE.IcosahedronGeometry(3.5,0),new THREE.MeshBasicMaterial({color:0xff0000,transparent:true,opacity:0.4,blending:2})); this.g.add(this.spikes); this.g.visible=false; this.t=0; } activate(r) { this.active=true; this.g.visible=true; const c=r?0xff3300:0x0088ff; this.spikes.material.color.setHex(c); this.core.material.color.setHex(r?0xffffaa:0xaaffff); } deactivate() { this.active=false; this.g.visible=false; } update(dt) { if(!this.active)return; this.t+=dt*15; const s=1+Math.sin(this.t)*0.05; this.spikes.scale.set(s,s,s); this.spikes.rotation.y+=dt*3; } }
@@ -1649,7 +1689,11 @@
         } 
     }
 
-    window.startBattle = function(customConfigs = null) { UI.show('game-ui'); initBattle(customConfigs); };
+    window.startBattle = function(customConfigs = null) { 
+        document.getElementById('game-msg').style.display = 'none'; // Ensure hidden on restart
+        UI.show('game-ui'); 
+        initBattle(customConfigs); 
+    };
 
     function spawnPlayers(customConfigs) { 
         let configs = customConfigs;
