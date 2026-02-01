@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Auto-Round & Match Config)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 22.4)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -42,11 +42,50 @@
             opacity: 1; pointer-events: auto;
         }
 
+        /* 主畫面背景豬 (Menu Hero Pig) */
+        .menu-bg-pig {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 450px;
+            opacity: 0.3; /* 背景圖透明度 */
+            z-index: -1;
+            pointer-events: none;
+            /* 移除之前的強制濾鏡，預期使用者會上傳去背圖或黑底圖 */
+            object-fit: contain;
+        }
+
         h1 { 
             font-size: clamp(2.5rem, 8vw, 4.5rem); margin-bottom: 5px; color: var(--primary-gold); 
             text-shadow: 0 0 20px rgba(255, 153, 204, 0.6); letter-spacing: 5px; text-align: center; 
+            z-index: 2;
         }
-        .sub-title { font-size: 1.2rem; color: #fff; margin-bottom: 30px; letter-spacing: 2px; opacity: 0.8; }
+        .sub-title { font-size: 1.2rem; color: #fff; margin-bottom: 5px; letter-spacing: 2px; opacity: 0.8; z-index: 2; }
+        
+        .version-text {
+            font-size: 0.8rem;
+            color: #d4af37; /* 金色 */
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            font-family: monospace;
+            z-index: 2;
+        }
+
+        .studio-footer {
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #666;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 3px;
+            opacity: 0.7;
+        }
+
         h2 { font-size: 1.4rem; color: #fff; margin-bottom: 20px; border-bottom: 2px solid var(--primary-gold); padding-bottom: 8px; }
 
         /* 輸入框樣式 */
@@ -125,6 +164,7 @@
             border: 2px solid var(--primary-gold); color: var(--primary-gold); cursor: pointer; border-radius: 50px;
             transition: all 0.3s; font-family: 'Cinzel', serif; text-transform: uppercase;
             max-width: 300px; width: 100%; margin-bottom: 15px;
+            z-index: 5;
         }
         .btn-gold:hover { background: var(--primary-gold); color: #1a0d0d; transform: scale(1.05); }
         .btn-gold:disabled { border-color: #555; color: #888; background: transparent; cursor: not-allowed; transform: none; }
@@ -133,6 +173,7 @@
 
         .lang-container {
             display: flex; gap: 15px; margin-bottom: 30px;
+            z-index: 5;
         }
         .btn-lang {
             padding: 8px 20px; font-size: 0.9rem; background: transparent;
@@ -160,41 +201,28 @@
         
         #top-announcer {
             position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            width: 95%; max-width: 600px;
+            width: 100%; max-width: var(--ui-max-width);
             text-align: center; pointer-events: none; z-index: 100;
         }
         #timer { color: #fff; font-size: 2.5rem; font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,1); }
-        
-        @keyframes announce-breathe {
-            0% { transform: scale(1); opacity: 0.95; }
-            50% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 20px #ff99cc; }
-            100% { transform: scale(1); opacity: 0.95; }
-        }
-
         #move-display {
-            color: var(--primary-gold); font-size: clamp(1rem, 3.5vw, 1.5rem); font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,1);
+            color: var(--primary-gold); font-size: clamp(1rem, 3.5vw, 1.3rem); font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,1);
             margin-top: 5px; opacity: 0; transition: opacity 0.3s;
-            background: rgba(0,0,0,0.85); padding: 12px 30px; border-radius: 50px;
-            display: inline-block; border: 2px solid var(--primary-gold);
-            white-space: normal; width: auto; max-width: 100%;
+            background: rgba(0,0,0,0.8); padding: 12px 30px; border-radius: 50px;
+            display: inline-block; border: 3px solid var(--primary-gold);
+            white-space: normal; width: auto;
         }
-        .announce-anim { animation: announce-breathe 2s infinite ease-in-out; }
 
-        #scoreboard {
-            position: absolute; top: 20px; right: 20px;
-            background: rgba(0, 0, 0, 0.5); padding: 10px 15px;
-            border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff; font-size: 0.9rem; pointer-events: none;
-            backdrop-filter: blur(5px); display: none; z-index: 150;
-            text-align: right;
+        #status-log {
+            position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: var(--ui-max-width); height: 42px; background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 153, 204, 0.4); border-radius: 8px; padding: 5px; font-size: 0.8rem; overflow-y: auto;
+            pointer-events: auto; color: #eee; backdrop-filter: blur(3px); z-index: 30; text-align: left;
         }
-        .score-row { margin-bottom: 4px; }
-        .score-num { color: var(--primary-gold); font-weight: bold; margin-left: 8px; }
-
-        /* Removed #status-log */
         
         #card-description {
-            position: absolute; bottom: 115px; left: 0; width: 100%;
+            position: absolute; bottom: 160px; /* Moved up 45px from 115px */
+            left: 0; width: 100%;
             text-align: center; color: #ffeb3b; font-size: 0.85rem; font-weight: bold;
             text-shadow: 0 0 5px #000; pointer-events: none;
             opacity: 0; transition: opacity 0.3s;
@@ -203,7 +231,8 @@
         }
 
         #bottom-ui-container {
-            position: absolute; bottom: 0; left: 0; width: 100%;
+            position: absolute; bottom: 30px; /* Moved up 30px from 0 */
+            left: 0; width: 100%;
             display: flex; justify-content: center;
             padding: 10px 0 20px 0; 
             background: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0.6) 80%, transparent);
@@ -269,7 +298,7 @@
         .home-btn { left: 20px; left: max(20px, env(safe-area-inset-left)); font-size: 1.5rem; padding-bottom: 3px; }
 
         #game-msg {
-            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 1.2rem; color: #fff; display: none; background: rgba(0,0,0,0.95);
             padding: 25px 40px; border-radius: 20px; border: 3px solid var(--primary-gold); z-index: 3000;
             text-align: center; width: 80%; max-width: 400px; backdrop-filter: blur(10px);
@@ -298,6 +327,37 @@
             font-family: 'Cinzel', serif;
         }
 
+        /* Ragnarok Online Style Damage Numbers */
+        .damage-popup {
+            position: absolute;
+            color: #ffff00;
+            font-family: "Arial Black", "Arial", sans-serif;
+            font-weight: 900;
+            font-size: 2.2rem;
+            letter-spacing: -2px;
+            /* Heavy black outline effect */
+            text-shadow: 
+                2px 2px 0 #000, 
+               -1px -1px 0 #000,  
+                1px -1px 0 #000,
+               -1px 1px 0 #000,
+                1px 1px 0 #000,
+                3px 3px 5px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 4000;
+            user-select: none;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        @keyframes damage-pop {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { transform: translateY(-30px) scale(1.3); opacity: 1; }
+            40% { transform: translateY(-40px) scale(1.0); opacity: 1; }
+            80% { transform: translateY(-60px) scale(1.0); opacity: 1; }
+            100% { transform: translateY(-80px) scale(0.8); opacity: 0; }
+        }
+
         @media (min-width: 1024px) {
             #status-log { bottom: 150px; width: 100%; font-size: 1rem; height: 50px; }
             .card { font-size: 0.8rem; }
@@ -312,8 +372,13 @@
     
     <!-- 1. 主選單 -->
     <div id="main-menu" class="overlay-screen active">
+        <!-- 豬豬背景圖 -->
+        <img src="pignarok_bg.png" class="menu-bg-pig" alt="Pig Background">
+        
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
+        
+        <div class="version-text">版本 22.4</div>
         
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
@@ -323,6 +388,8 @@
         <button id="btn-create" class="btn-gold" style="border-color:#ff99cc; color:#ff99cc; background:rgba(255,153,204,0.2);" onclick="UI.showCreate()">創建戰場 (支援連線)</button>
         <button id="btn-join" class="btn-gold" style="border-color:#ff99cc; color:#ff99cc; background:rgba(255,153,204,0.2);" onclick="UI.showJoin()">加入網絡對戰</button>
         <button id="btn-tutorial" class="btn-gold" style="border-color:#55ccff; color:#55ccff; background:rgba(0,100,200,0.2);" onclick="window.startTutorialSelection()">角色教學</button>
+    
+        <div class="studio-footer">JASDEV STUDIO 2025</div>
     </div>
 
     <!-- 2. 創建房間 (Host) -->
@@ -421,16 +488,18 @@
 
     <div id="game-msg"></div>
 
+    <!-- 傷害數字容器 (置於最上層) -->
+    <div id="dmg-container" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:4000; overflow:hidden;"></div>
+
     <div id="game-ui">
         <button class="circle-btn home-btn" onclick="window.resetGame()" title="回主選單">🏠</button>
         
-        <div id="scoreboard"></div>
+        <div id="scoreboard" style="display:none;"></div> <!-- 預設隱藏 -->
 
         <div id="top-announcer">
             <div id="timer">10</div>
             <div id="move-display">準備中...</div>
         </div>
-        <!-- Status log removed -->
         <div id="card-description"></div> 
 
         <div id="bottom-ui-container">
@@ -478,7 +547,7 @@
     const MAX_HP_ODIN = 500; 
     const MAX_HP_LOKI = 400;
     const TURN_TIME = 15; // 聯網稍微長一點
-    let BASE_CAM_Y = 350; let BASE_CAM_Z = 600; // Tweaked Y for better tactical view
+    let BASE_CAM_Y = 280; let BASE_CAM_Z = 600;
     let DEFAULT_CAM_POS = new THREE.Vector3(0, BASE_CAM_Y, BASE_CAM_Z);
     const DEFAULT_LOOK_AT = new THREE.Vector3(0, 40, -20);
     let targetWins = 2; // 預設 3 局 2 勝
@@ -505,7 +574,7 @@
             moveNames: ["物理攻擊", "魔法攻擊", "反擊", "魔法反射", "防禦", "終極奧義"],
             cardNames: { 0: "物攻⚔️", 1: "魔法🪄", 2: "反擊🛡️", 3: "反射💎", 4: "防禦🧱", 5: "奧義🔥", swap: "空間🌀" },
             tutCardNames: { 5: "物奧🔥", 6: "魔奧⚡" },
-            victory: "勝利！", gameOver: "回合結束", restart: "下一回合", finalVictory: "豬林匹斯山的新皇者！", finalMenu: "回主畫面",
+            victory: "勝利！", gameOver: "回合結束", restart: "重新開始",
             swapSkill: "空間調換", counterSkill: "防禦反擊",
             targetLocked: "(目標鎖定中)", dead: "芭比Q啦", fatigue: "疲勞", rage: "怒氣",
             defendFatigue: "防禦疲勞中", defend: "防禦", tired: "力盡🧱",
@@ -541,6 +610,8 @@
             connError: "連線錯誤", incomplete: "輸入不完整", hostLeft: "房主已斷線，遊戲結束",
             winSuffix: "勝",
             roundWinner: "回合勝利者：", nextRoundIn: "下一回合：",
+            currentRound: "當前局分",
+            dmgLog: "造成 {dmg} 傷害！"
         },
         'en-US': {
             title: "PIGNAROK", singlePlayer: "Single Player", tutorial: "Tutorial",
@@ -561,7 +632,7 @@
             moveNames: ["Melee", "Magic", "Counter", "Reflect", "Defend", "Ultimate"],
             cardNames: { 0: "Melee⚔️", 1: "Magic🪄", 2: "Count🛡️", 3: "Refl💎", 4: "Def🧱", 5: "Ult🔥", swap: "Swap🌀" },
             tutCardNames: { 5: "Phys Ult🔥", 6: "Mag Ult⚡" },
-            victory: "VICTORY!", gameOver: "GAME OVER", restart: "Next Round", finalVictory: "The New Emperor!", finalMenu: "Main Menu",
+            victory: "VICTORY!", gameOver: "GAME OVER", restart: "Play Again", finalVictory: "The New Emperor!", finalMenu: "Main Menu",
             swapSkill: "Spatial Swap", counterSkill: "Counter",
             targetLocked: "(Target Locked)", dead: "Barbecued", fatigue: "Fatigue", rage: "Rage",
             defendFatigue: "Fatigued", defend: "Defend", tired: "Tired🧱",
@@ -597,6 +668,8 @@
             connError: "Connection Error", incomplete: "Input incomplete", hostLeft: "Host disconnected, game over",
             winSuffix: " Wins",
             roundWinner: "Round Winner: ", nextRoundIn: "Next Round: ",
+            currentRound: "Current Scores",
+            dmgLog: "hit for {dmg} damage!"
         }
     };
     let CARD_NAMES = []; 
@@ -642,7 +715,7 @@
         if (!camera || !renderer) return; 
         const aspect = window.innerWidth / window.innerHeight; 
         let targetY = BASE_CAM_Y; let targetZ = BASE_CAM_Z; 
-        if (aspect > 1.2) { targetY = 280; targetZ = 550; } else if (aspect < 0.6) { targetZ = 650; targetY = 380; } 
+        if (aspect > 1.2) { targetY = 240; targetZ = 550; } else if (aspect < 0.6) { targetZ = 650; targetY = 320; } 
         
         // Multi-player Camera Rotation
         let rotY = 0;
@@ -685,6 +758,32 @@
         const md = document.getElementById('move-display');
         md.style.opacity = "0";
         md.classList.remove('announce-anim');
+    }
+
+    // New Function: Spawn Damage Number (RO Style)
+    function spawnDamageNumber(target, amount) {
+        if (!target) return;
+        
+        const div = document.createElement('div');
+        div.className = 'damage-popup';
+        div.innerText = amount;
+        
+        // Initial Position (will be updated in loop, but we set style once)
+        // We use CSS animation for movement, but need start pos
+        const pos = target.group.position.clone().add(new THREE.Vector3(0, 40, 0));
+        const vector = pos.project(camera);
+        const x = (vector.x * .5 + .5) * window.innerWidth;
+        const y = (-(vector.y * .5) + .5) * window.innerHeight;
+        
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        div.style.animation = 'damage-pop 0.8s ease-out forwards';
+        
+        document.getElementById('dmg-container').appendChild(div);
+        
+        setTimeout(() => {
+            if (div.parentNode) div.parentNode.removeChild(div);
+        }, 800);
     }
 
     window.setLang = function(lang) {
@@ -839,8 +938,8 @@
         updateScoreboard() {
             const sb = document.getElementById('scoreboard');
             if (isTutorialMode) { sb.style.display = 'none'; return; }
-            sb.style.display = 'block';
-            sb.innerHTML = '';
+            // Do NOT display block here, only populate. It is shown at round end manually.
+            sb.innerHTML = `<h3 style="margin:0 0 10px 0; color:#ff99cc; border-bottom:1px solid #555;">${TRANSLATIONS[currentLang].currentRound}</h3>`;
             players.forEach(p => {
                 const wins = matchScores[p.id] || 0;
                 const row = document.createElement('div');
@@ -1086,9 +1185,13 @@
     }
 
     function gainRage(p, isRed, amt) { 
+        // Modified to use object property primarily
         if (isRed) { p.rage.blue = 0; p.rage.red = Math.min(100, p.rage.red + amt); } 
         else { p.rage.red = 0; p.rage.blue = Math.min(100, p.rage.blue + amt); } 
+        
+        // Sync global if P0 (for legacy compatibility)
         if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
+        
         updateHPUI(); 
         if(p.updateLabel) p.updateLabel(); 
     }
@@ -1096,9 +1199,12 @@
     function loseRage(p, isRed) { 
         if (isRed) p.rage.red = Math.max(0, p.rage.red - 30); 
         else p.rage.blue = Math.max(0, p.rage.blue - 30); 
+        
         if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
     }
 
+    // ... [Keep focusOnAction, cinematicIntro, createExplosion, etc. unchanged] ...
+    
     // --- INTEGRATING HELPER CLASSES FROM ORIGINAL ---
     class HitParticle { constructor(pos, color) { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true }); this.mesh = new THREE.Mesh(SHARED_BOX_GEO, mat); this.mesh.position.copy(pos); const a = Math.random() * Math.PI * 2, s = 5 + Math.random() * 5; this.velocity = new THREE.Vector3(Math.cos(a) * s, 4 + Math.random() * 6, Math.sin(a) * s); this.life = 1.0; scene.add(this.mesh); } update(dt) { this.mesh.position.add(this.velocity.clone().multiplyScalar(dt)); this.velocity.y -= 15 * dt; this.life -= dt * 1.5; this.mesh.material.opacity = this.life; if (this.life <= 0) { if(this.mesh.parent) scene.remove(this.mesh); if(this.mesh.material) this.mesh.material.dispose(); return false; } return true; } }
     class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
@@ -1231,19 +1337,32 @@
         const txt = TRANSLATIONS[currentLang]; 
         let dmg = (a.type === 'Loki') ? (type === 0 ? (isSuper ? 70 : 45) : (isSuper ? t.maxHP*0.5 : 65)) : (type === 0 ? (isSuper ? 60 : 40) : (isSuper ? t.maxHP*0.5 : 50)); 
         
+        // 顯示傷害數字
+        // 若是被防禦，則傷害可能不同或為 0？目前邏輯防禦是減傷機制不明確，直接在下面處理
+        
         if (isSuper) { 
             createExplosion(t.group.position.clone().add(new THREE.Vector3(0, 15, 0)), 2.5); 
-            if (type === 0 && t.action.card === 2) log(`${t.name} ` + txt.logCounter); 
-            if (type === 1 && t.action.card === 3) log(`${t.name} ` + txt.logReflect); 
+            // 奧義直接命中，不反彈不反擊 (除了Loki物奧第二次是算普攻? Code says calcDamage(..., 0, true) so it is type 0)
+            // 不過下面有處理 counter/reflect 失敗的 log
         } else { 
+            // 普通攻擊的反擊/反射判定
             if (type === 0 && t.action.card === 2) { 
-                if (t.type === 'Loki') return; 
-                loseRage(a, true); a.takeDamage(65, 0, t.group.position); 
+                if (t.type === 'Loki') return; // Loki is Swap
+                // Odin Counter Success
+                loseRage(a, true); 
+                let counterDmg = 65;
+                a.takeDamage(counterDmg, 0, t.group.position); 
+                spawnDamageNumber(a, counterDmg);
+                showMove(`[${t.getDisplayName()}] 反擊！ -> ${a.getDisplayName()} ${counterDmg} Dmg!`);
                 if (t.type === 'Odin') gainRage(t, true, 20); 
                 return; 
             } 
             if (type === 1 && t.action.card === 3) { 
-                loseRage(a, false); a.takeDamage(Math.floor(dmg*0.8), 2, t.group.position); 
+                loseRage(a, false); 
+                let reflectDmg = Math.floor(dmg*0.8);
+                a.takeDamage(reflectDmg, 2, t.group.position); 
+                spawnDamageNumber(a, reflectDmg);
+                showMove(`[${t.getDisplayName()}] 反射！ -> ${a.getDisplayName()} ${reflectDmg} Dmg!`);
                 gainRage(t, false, 20); 
                 return; 
             } 
@@ -1258,12 +1377,23 @@
                 if (fatigueAdd > 0) t.fatigue = Math.min(150, t.fatigue + fatigueAdd); 
             } 
             t.blockedInTurn = true; SoundEngine.play('ding'); 
-            log(`${t.name} ` + txt.logBlock + ` ${a.name} ` + txt.logHit); 
+            spawnDamageNumber(t, "Blocked");
+            showMove(`[${t.getDisplayName()}] ${txt.logBlock}!`);
             updateHPUI(); return; 
         } 
         
+        // 實際造成傷害
         loseRage(t, type === 0); 
         t.takeDamage(dmg, type, a.group.position); 
+        spawnDamageNumber(t, dmg);
+        
+        // 更新頂部顯示：A 對 B 造成 xxx 傷害
+        let skillName = "攻擊";
+        if (isSuper) skillName = "奧義";
+        else if (type === 0) skillName = "物理攻擊";
+        else if (type === 1) skillName = "魔法攻擊";
+        
+        showMove(`${a.getDisplayName()} 對 ${t.getDisplayName()} 使用 ${skillName}, 造成 ${dmg} 傷害!`);
         
         // 修正：如果是奧義，不增加怒氣
         if (!isSuper) {
@@ -1327,22 +1457,29 @@
         if (attacker.type === 'Loki') { 
             // Loki: 單體來回衝撞
             attacker.ballRotationMultiplier = 15.0; 
+            
             const vec = tp.clone().sub(op).normalize();
+            // 第一擊：正面貫穿到身後
             const behindPos = tp.clone().add(vec.clone().multiplyScalar(40)); 
+            // 第二擊：從身後衝向對手（停在身後 5 身位處撞擊）
             const hitBackPos = tp.clone().add(vec.clone().multiplyScalar(5)); 
             
+            // 1. Front -> Behind
             await move(attacker.group, behindPos, 250);
             calcDamage(attacker, target, 0, true);
             createExplosion(tp, 1.5);
             SoundEngine.play('hit');
             await sleep(100);
 
+            // 2. Behind -> HitBack -> Behind
             await move(attacker.group, hitBackPos, 200);
             calcDamage(attacker, target, 0, true, true); 
             SoundEngine.play('hit');
             await move(attacker.group, behindPos, 200);
             await sleep(100);
 
+            // 3. Behind -> Front (Pierce back)
+            // 為了視覺效果，這擊直接衝回原點，或衝到對手前方
             const frontPos = tp.clone().sub(vec.clone().multiplyScalar(40));
             await move(attacker.group, frontPos, 250);
             calcDamage(attacker, target, 0, true);
@@ -1350,6 +1487,7 @@
             createExplosion(tp, 1.5);
             await sleep(100);
 
+            // End: 回到原點
             attacker.ballRotationMultiplier = 1.0; 
             await move(attacker.group, op, 500); 
         } else { 
@@ -1504,11 +1642,11 @@
                         // Host triggers restart after delay
                         setTimeout(() => {
                             if(gameState !== 'IDLE') Network.hostStartGame(); // Restart with existing players/bots
-                        }, 3000);
+                        }, 5000); // 5 sec delay as requested (was 3)
                     } else if (!isMultiplayer) {
                         // SP Logic
                         showAutoRestartMsg(wName);
-                        setTimeout(() => window.restartRound(), 3000);
+                        setTimeout(() => window.restartRound(), 5000); // 5 sec delay as requested
                     }
                 }
             } else {
@@ -1578,28 +1716,80 @@
             if (isCpu) {
                  const threats = players.filter(enemy => enemy.alive && enemy.id !== idx && enemy.action.target === idx);
                  let chosenTargetId = p.action.target;
-                 if (chosenTargetId === -1 || Math.random() < 0.4 || threats.length > 0) {
-                     if (threats.length > 0 && Math.random() < 0.7) {
+                 
+                 // Smart Targeting Logic
+                 // 1. Check for Fatigued players (Defense >= 100)
+                 const fatiguedTargets = players.filter(o => o.id !== idx && o.alive && o.fatigue >= 100);
+                 
+                 // Chance to switch target logic
+                 let shouldSwitch = (chosenTargetId === -1 || Math.random() < 0.4 || threats.length > 0);
+                 
+                 if (shouldSwitch) {
+                     if (fatiguedTargets.length > 0 && Math.random() < 0.85) {
+                         // 85% chance to target fatigued player
+                         chosenTargetId = fatiguedTargets[Math.floor(Math.random() * fatiguedTargets.length)].id;
+                     } else if (threats.length > 0 && Math.random() < 0.7) {
+                         // React to threat
                          chosenTargetId = threats[Math.floor(Math.random() * threats.length)].id;
                      } else {
+                         // Random switch
                          const validTargets = players.filter(o => o.id !== idx && o.alive);
                          if (validTargets.length > 0) {
                              chosenTargetId = validTargets[Math.floor(Math.random() * validTargets.length)].id;
                          }
                      }
                  }
+
                  if (chosenTargetId !== -1) {
                      p.action.target = chosenTargetId;
                      if (players[chosenTargetId]) p.face(players[chosenTargetId].group.position);
                  }
-                 if (p.action.card === -1 || Math.random() < 0.2) {
-                    const r = p.rage; const maxRage = Math.max(r.red, r.blue);
+                 
+                 // 2. Decide Card (Rage-based Logic)
+                 if (p.action.card === -1 || Math.random() < 0.3) {
+                    const r = p.rage; 
+                    const maxRage = Math.max(r.red, r.blue);
                     let choice = 0;
-                    if (maxRage >= 99) choice = Math.random() < 0.9 ? 5 : 0;
-                    else if (r.red > 50) choice = (Math.random() < 0.8) ? 0 : (Math.random() < 0.5 ? 2 : 4);
-                    else if (r.blue > 50) choice = (Math.random() < 0.8) ? 1 : (Math.random() < 0.5 ? 3 : 4);
-                    else choice = Math.random() < 0.5 ? 0 : 1;
-                    if (choice === 4 && p.fatigue >= 100) choice = 0;
+                    
+                    // High Rage: Ult priority
+                    if (maxRage >= 99 && Math.random() < 0.9) {
+                        choice = 5; // Ultimate
+                    } else {
+                        // Determine Rage preference
+                        const isRed = r.red >= r.blue;
+                        const hasRage = maxRage > 20; // Only care if rage is somewhat accumulated
+                        
+                        // Card Pool Probabilities
+                        // 0: Melee (Phys), 1: Magic (Mag)
+                        // 2: Counter (Phys), 3: Reflect (Mag)
+                        // 4: Defend
+                        
+                        if (hasRage) {
+                            if (isRed) {
+                                // Phys Rage: Prefer 0, 2
+                                const roll = Math.random();
+                                if (roll < 0.6) choice = 0;      // Melee
+                                else if (roll < 0.9) choice = 2; // Counter
+                                else choice = 4;                 // Defend
+                            } else {
+                                // Magic Rage: Prefer 1, 3
+                                const roll = Math.random();
+                                if (roll < 0.6) choice = 1;      // Magic
+                                else if (roll < 0.9) choice = 3; // Reflect
+                                else choice = 4;                 // Defend
+                            }
+                        } else {
+                            // Low/No Rage: Mixed, slightly random
+                            const roll = Math.random();
+                            if (roll < 0.4) choice = 0;
+                            else if (roll < 0.8) choice = 1;
+                            else choice = 4;
+                        }
+                    }
+                    
+                    // Safety check for fatigue
+                    if (choice === 4 && p.fatigue >= 100) choice = (r.red >= r.blue) ? 0 : 1;
+                    
                     p.action.card = choice;
                  }
             }
@@ -1861,7 +2051,6 @@
         playerRage = { red: 0, blue: 0 }; 
         gameState = 'IDLE'; 
         matchScores = {}; // Reset Scores on full quit
-        // document.getElementById('status-log').innerHTML = ""; 
         document.getElementById('scoreboard').style.display = 'none';
         UI.showMenu();
         hideCardDescription();
@@ -1894,24 +2083,59 @@
         const btnText = isFinal ? TRANSLATIONS[currentLang].finalMenu : TRANSLATIONS[currentLang].restart;
         const btnAction = isFinal ? "window.resetGame()" : "window.restartRound()";
         
-        // If client in MP and not final, hide restart button (wait for host)
+        // Add scoreboard display for round end
+        let scoreHtml = '';
+        if (players.length > 0) {
+            scoreHtml = '<div style="margin-bottom:15px; border-top:1px solid #555; padding-top:10px; width:100%;">';
+            players.forEach(p => {
+                const wins = matchScores[p.id] || 0;
+                scoreHtml += `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ddd; margin-bottom:4px;">
+                                <span>${p.getDisplayName()}</span>
+                                <span style="color:#ffcc00; font-weight:bold;">${wins} ${TRANSLATIONS[currentLang].winSuffix}</span>
+                              </div>`;
+            });
+            scoreHtml += '</div>';
+        }
+
         let btnHtml = `<button class="btn-gold" style="margin-top:10px;" onclick="${btnAction}">${btnText}</button>`;
         if (isMultiplayer && !Online.isHost && !isFinal) {
             btnHtml = `<div style="font-size:0.9rem; color:#aaa; margin-top:10px;">${TRANSLATIONS[currentLang].waitingHost}</div>`;
         }
 
-        el.innerHTML = `<span>${t}</span><br>${btnHtml}`; 
+        el.innerHTML = `<span>${t}</span><br>${scoreHtml}${btnHtml}`; 
         el.style.display = 'flex'; 
+        
+        // Hide scoreboard UI as we show it in modal now
+        document.getElementById('scoreboard').style.display = 'none';
+        
+        if (isFinal) {
+            // For final victory, clear any auto restart
+        }
     }
 
     function showAutoRestartMsg(winnerName) {
         const el = document.getElementById('game-msg');
         const t = TRANSLATIONS[currentLang];
         
-        let count = 3;
-        el.innerHTML = `<span style="font-size:1.5rem; color:#ffcc00;">${t.roundWinner} ${winnerName}</span><br><br>
-                        <div style="font-size:1rem; color:#fff;">${t.nextRoundIn} <span id="auto-restart-cnt" style="font-size:1.5rem; font-weight:bold; color:#55ccff;">3</span></div>`;
+        // Add scoreboard display
+        let scoreHtml = '<div style="margin:15px 0; border-top:1px solid #555; padding-top:10px; width:100%; text-align:left;">';
+        players.forEach(p => {
+            const wins = matchScores[p.id] || 0;
+            scoreHtml += `<div style="display:flex; justify-content:space-between; font-size:0.9rem; color:#ddd; margin-bottom:4px;">
+                            <span>${p.getDisplayName()}</span>
+                            <span style="color:#ffcc00; font-weight:bold;">${wins} ${TRANSLATIONS[currentLang].winSuffix}</span>
+                          </div>`;
+        });
+        scoreHtml += '</div>';
+        
+        let count = 5;
+        el.innerHTML = `<span style="font-size:1.5rem; color:#ffcc00;">${t.roundWinner} ${winnerName}</span>
+                        ${scoreHtml}
+                        <div style="font-size:1rem; color:#fff;">${t.nextRoundIn} <span id="auto-restart-cnt" style="font-size:1.5rem; font-weight:bold; color:#55ccff;">5</span></div>`;
         el.style.display = 'flex';
+        
+        // Hide top scoreboard
+        document.getElementById('scoreboard').style.display = 'none';
         
         const intv = setInterval(() => {
             count--;
