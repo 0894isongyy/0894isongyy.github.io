@@ -191,12 +191,7 @@
         .score-row { margin-bottom: 4px; }
         .score-num { color: var(--primary-gold); font-weight: bold; margin-left: 8px; }
 
-        #status-log {
-            position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: var(--ui-max-width); height: 42px; background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 153, 204, 0.4); border-radius: 8px; padding: 5px; font-size: 0.8rem; overflow-y: auto;
-            pointer-events: auto; color: #eee; backdrop-filter: blur(3px); z-index: 30; text-align: left;
-        }
+        /* Removed #status-log */
         
         #card-description {
             position: absolute; bottom: 115px; left: 0; width: 100%;
@@ -433,9 +428,9 @@
 
         <div id="top-announcer">
             <div id="timer">10</div>
-            <div id="move-display" class="announce-anim">準備中...</div>
+            <div id="move-display">準備中...</div>
         </div>
-        <div id="status-log"></div>
+        <!-- Status log removed -->
         <div id="card-description"></div> 
 
         <div id="bottom-ui-container">
@@ -505,6 +500,7 @@
             back: "返回", backMenu: "回主選單",
             odinName: "奧丁豬", odinDesc: "雷霆與榮耀",
             lokiName: "洛基豬", lokiDesc: "詭計與鮮肉",
+            charOdin: "奧汀", charLoki: "洛基",
             turnHint: "請選擇下方的卡牌並點選對手", ready: "準備中...",
             moveNames: ["物理攻擊", "魔法攻擊", "反擊", "魔法反射", "防禦", "終極奧義"],
             cardNames: { 0: "物攻⚔️", 1: "魔法🪄", 2: "反擊🛡️", 3: "反射💎", 4: "防禦🧱", 5: "奧義🔥", swap: "空間🌀" },
@@ -560,6 +556,7 @@
             back: "Back", backMenu: "Main Menu",
             odinName: "Odin", odinDesc: "Thunder & Glory",
             lokiName: "Loki", lokiDesc: "Tricks & Meat",
+            charOdin: "Odin", charLoki: "Loki",
             turnHint: "Select a card below and tap an enemy", ready: "Ready...",
             moveNames: ["Melee", "Magic", "Counter", "Reflect", "Defend", "Ultimate"],
             cardNames: { 0: "Melee⚔️", 1: "Magic🪄", 2: "Count🛡️", 3: "Refl💎", 4: "Def🧱", 5: "Ult🔥", swap: "Swap🌀" },
@@ -675,7 +672,20 @@
         } 
     }
 
-    function log(m) { const b = document.getElementById('status-log'); if (b) { const d = document.createElement('div'); d.innerHTML = `> ${m}`; b.appendChild(d); b.scrollTop = b.scrollHeight; } }
+    function log(m) { /* Disabled */ }
+
+    function showMove(text) {
+        const md = document.getElementById('move-display');
+        md.innerText = text;
+        md.style.opacity = "1";
+        md.classList.add('announce-anim');
+    }
+
+    function hideMove() {
+        const md = document.getElementById('move-display');
+        md.style.opacity = "0";
+        md.classList.remove('announce-anim');
+    }
 
     window.setLang = function(lang) {
         currentLang = lang;
@@ -1189,8 +1199,19 @@
              if (isTutorialMode) {
                 return (this.id === 0) ? t.tutorialName : (this.id === 2 ? t.civilian : t.dummyName);
              } else {
-                 if (this.id === myPlayerIndex) return this.name + t.playerSuffix;
-                 return this.name;
+                 const charPrefix = (this.type === 'Odin' ? t.charOdin : t.charLoki);
+                 // Format: (CharName) PlayerName
+                 let baseName = `(${charPrefix}) `;
+                 
+                 // If name already contains prefix, avoid double? user enters raw name usually.
+                 // If multiplayer and is CPU:
+                 if (this.name.startsWith("BOT-")) {
+                     baseName += `CPU${this.id}`; // Simplified CPU name
+                 } else {
+                     baseName += this.name;
+                 }
+                 
+                 return baseName;
              }
         }
         refreshLabel() { if(this.labelSprite) { this.labelSprite.material.map.dispose(); this.labelSprite.material.map = createTextSprite(this.getDisplayName()).material.map; } if(this.brokenShieldIcon) { this.brokenShieldIcon.material.map.dispose(); this.brokenShieldIcon.material.map = createBrokenShieldTexture(); } if(this.targetLabel) { this.targetLabel.material.map.dispose(); this.targetLabel.material.map = createTextSprite(TRANSLATIONS[currentLang].targetLocked).material.map; } }
@@ -1283,14 +1304,14 @@
         }); 
     }
 
-    async function cinematicIntro(attacker, skillName) { const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(attacker.group.quaternion); const focusPos = attacker.group.position.clone().add(forward.multiplyScalar(150)); focusPos.y += 20; await new Promise(res => { let sPos = camera.position.clone(); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 400); camera.position.lerpVectors(sPos, focusPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); const moveDisplay = document.getElementById('move-display'); moveDisplay.innerText = skillName; moveDisplay.style.opacity = "1"; SoundEngine.play('click'); await sleep(500); return new Promise(res => { let sPos = camera.position.clone(); let zoomOutPos = attacker.group.position.clone().add(new THREE.Vector3(0, 240, 350)); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 1000); camera.position.lerpVectors(sPos, zoomOutPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); }
+    async function cinematicIntro(attacker, skillName) { const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(attacker.group.quaternion); const focusPos = attacker.group.position.clone().add(forward.multiplyScalar(150)); focusPos.y += 20; await new Promise(res => { let sPos = camera.position.clone(); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 400); camera.position.lerpVectors(sPos, focusPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); showMove(skillName); SoundEngine.play('click'); await sleep(500); return new Promise(res => { let sPos = camera.position.clone(); let zoomOutPos = attacker.group.position.clone().add(new THREE.Vector3(0, 240, 350)); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 1000); camera.position.lerpVectors(sPos, zoomOutPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); }
     
     // Attack functions (Shortened for brevity but functionality preserved)
     async function performAttack(attacker, target, type) { 
         if (!attacker || !target) return; const tp = target.group.position.clone(), orig = attacker.group.position.clone(); 
-        if (type === 0 && target.action.card === 2 && target.type === 'Odin') { const strikePos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, strikePos, 200); SoundEngine.play('magic'); target.group.visible = false; const moveDisplay = document.getElementById('move-display'); moveDisplay.innerText = "Spank!"; moveDisplay.style.opacity = "1"; const behindPos = attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45)); target.group.position.copy(behindPos); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; moveDisplay.style.opacity = "0"; await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
-        if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { log(`${target.name} Swap!`); const victim = victims[Math.floor(Math.random()*victims.length)]; const moveDisplay = document.getElementById('move-display'); moveDisplay.innerText = "Swap!"; moveDisplay.style.opacity = "1"; await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); moveDisplay.innerText = "!!!"; const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); moveDisplay.style.opacity = "0"; const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); let dmg = (attacker.type === 'Loki') ? (Math.floor(Math.random() * 21) + 35) : (Math.floor(Math.random() * 21) + 30); victim.takeDamage(dmg, 0, attacker.group.position); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
-        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); const moveDisplay = document.getElementById('move-display'); moveDisplay.innerText = CARD_NAMES[3]; moveDisplay.style.opacity = "1"; for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; moveDisplay.style.opacity = "0"; } else if (target.type === 'Loki') { log(`${target.name} ${CARD_NAMES[3]}!`); target.ballRotationMultiplier = 15.0; await sleep(1000); const originalBallPos = target.ball.position.clone(); const worldPosAttacker = new THREE.Vector3(); attacker.group.getWorldPosition(worldPosAttacker); worldPosAttacker.y += 30; await new Promise(res => { const start = target.ball.position.clone(), localTarget = target.modelContainer.worldToLocal(worldPosAttacker.clone()), t = performance.now(); function fly() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, localTarget, p); if (p < 1) requestAnimationFrame(fly); else res(); } fly(); }); SoundEngine.play('hit'); createExplosion(attacker.group.position, 2.0); await new Promise(res => { const start = target.ball.position.clone(), t = performance.now(); function back() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, originalBallPos, p); if (p < 1) requestAnimationFrame(back); else res(); } back(); }); target.ballRotationMultiplier = 1.0; } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
+        if (type === 0 && target.action.card === 2 && target.type === 'Odin') { const strikePos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, strikePos, 200); SoundEngine.play('magic'); target.group.visible = false; showMove("Spank!"); const behindPos = attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45)); target.group.position.copy(behindPos); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; hideMove(); await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
+        if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { log(`${target.name} Swap!`); const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); let dmg = (attacker.type === 'Loki') ? (Math.floor(Math.random() * 21) + 35) : (Math.floor(Math.random() * 21) + 30); victim.takeDamage(dmg, 0, attacker.group.position); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
+        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { log(`${target.name} ${CARD_NAMES[3]}!`); target.ballRotationMultiplier = 15.0; await sleep(1000); const originalBallPos = target.ball.position.clone(); const worldPosAttacker = new THREE.Vector3(); attacker.group.getWorldPosition(worldPosAttacker); worldPosAttacker.y += 30; await new Promise(res => { const start = target.ball.position.clone(), localTarget = target.modelContainer.worldToLocal(worldPosAttacker.clone()), t = performance.now(); function fly() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, localTarget, p); if (p < 1) requestAnimationFrame(fly); else res(); } fly(); }); SoundEngine.play('hit'); createExplosion(attacker.group.position, 2.0); await new Promise(res => { const start = target.ball.position.clone(), t = performance.now(); function back() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, originalBallPos, p); if (p < 1) requestAnimationFrame(back); else res(); } back(); }); target.ballRotationMultiplier = 1.0; } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
     }
     async function performLightningStorm(p) { log(`<b>${p.name} Ult!</b>`); SoundEngine.play('super'); const targets = players.filter(o => o && o.id !== p.id && o.alive); if (p.type === 'Loki') { p.takeDamage(p.maxHP * 0.25, 2); for(let i=0; i<3; i++) { targets.forEach(t => activeProjectiles.push(new MeatDrop(t.group.position, 8.75, true))); await sleep(400); } await sleep(600); targets.forEach(t => calcDamage(p, t, 1, true)); } else { const pullBackPos = new THREE.Vector3(0, 450, 650), pullBackCenter = new THREE.Vector3(0, 40, 0), originalCamPos = camera.position.clone(); await new Promise(res => { let s = performance.now(); function up() { let pv = Math.min(1, (performance.now() - s) / 800); camera.position.lerpVectors(originalCamPos, pullBackPos, pv); camera.lookAt(pullBackCenter); if (pv < 1) requestAnimationFrame(up); else res(); } up(); }); await sleep(300); for (let i = 0; i < 8; i++) { targets.forEach(t => { const sY = t.group.position.clone().add(new THREE.Vector3((Math.random()-0.5)*30, 500, (Math.random()-0.5)*30)); activeLightnings.push(new OptimizedLightningBolt(sY, t.group.position)); }); SoundEngine.play('magic'); await sleep(150); } await sleep(400); targets.forEach(t => calcDamage(p, t, 1, true)); await sleep(400); resetCamera(); } }
     
@@ -1348,11 +1369,9 @@
         const q = players.filter(p => p && p.alive).sort((a, b) => (pMap[a.action.card]??5) - (pMap[b.action.card]??5)); 
         let localDemoId = currentDemoId; 
         if (!isTutorialMode) {
-            const md = document.getElementById('move-display'); 
-            md.innerText = TRANSLATIONS[currentLang].lockingTargets; 
-            md.style.opacity = "1";
+            showMove(TRANSLATIONS[currentLang].lockingTargets);
             await sleep(1200);
-            md.style.opacity = "0";
+            hideMove();
             await sleep(300);
         }
 
@@ -1364,7 +1383,6 @@
             const cid = p.action.card; 
             
             // Detailed Announcer Logic
-            const md = document.getElementById('move-display');
             let skillText = "";
             let targetName = t ? t.getDisplayName() : "";
             if (cid === 4) { skillText = `[${p.getDisplayName()}] ${CARD_NAMES[4]}!`; }
@@ -1380,7 +1398,7 @@
             }
             
             if (cid === 4 || cid === 2 || cid === 3) { 
-                md.innerText = skillText; md.style.opacity = "1"; SoundEngine.play('click'); await sleep(1000); 
+                showMove(skillText); SoundEngine.play('click'); await sleep(1000); 
             } else if (cid >= 0) { 
                 await cinematicIntro(p, skillText); // Use Detailed Text
             } 
@@ -1390,7 +1408,7 @@
             // Handle invalid targets
             if (!t || !t.alive) { 
                 if (cid >= 0 && cid !== 4 && cid !== 2 && cid !== 3 && cid !== 5) { // 5 (Ult) can be AOE
-                     md.innerText = "？？？？？"; md.style.opacity = "1"; await sleep(1000); md.style.opacity = "0"; 
+                     showMove("？？？？？"); await sleep(1000); hideMove();
                 }
                 // Allow Magic Ult (5) to proceed even if target -1 (logic handles AOE)
                  const isMagicUlt = (cid === 5 && !((p.id === 0) ? (playerRage.red >= 99) : (p.rage.red >= 99)));
@@ -1432,7 +1450,7 @@
             else if (cid >= 0 && cid < 2) { if (t && t.alive) { await focusOnAction(p, t, 600); p.face(t.group.position); } await performAttack(p, t, cid); } 
             
             if (localDemoId !== currentDemoId) return; 
-            document.getElementById('move-display').style.opacity = "0"; updateHPUI(); await sleep(300); 
+            hideMove(); updateHPUI(); await sleep(300); 
             
             // New Requirement: Pause after action before next camera move
             resetCamera(); 
@@ -1597,7 +1615,7 @@
 
         gameState = 'WAITING'; timeLeft = TURN_TIME; selectedSlot = -1; selectedTargetId = -1;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected', 'disabled'));
-        document.getElementById('move-display').style.opacity = "0"; 
+        hideMove();
         
         const tEl = document.getElementById('timer'); if (tEl) { tEl.innerText = timeLeft; tEl.style.display = "block"; }
         document.getElementById('turn-hint').style.display = 'block';
@@ -1674,6 +1692,8 @@
             let o = intersects[0].object; 
             while(o && !o.userData.isCharacter) o = o.parent; 
             if (o) { 
+                if (o.userData.playerId === myPlayerIndex) return; // Prevent self-targeting explicitly
+                
                 selectedTargetId = o.userData.playerId; 
                 p.action.target = selectedTargetId;
                 p.face(players[selectedTargetId].group.position); 
@@ -1841,7 +1861,7 @@
         playerRage = { red: 0, blue: 0 }; 
         gameState = 'IDLE'; 
         matchScores = {}; // Reset Scores on full quit
-        document.getElementById('status-log').innerHTML = ""; 
+        // document.getElementById('status-log').innerHTML = ""; 
         document.getElementById('scoreboard').style.display = 'none';
         UI.showMenu();
         hideCardDescription();
@@ -1852,27 +1872,6 @@
         Online.playerMap = [];
         Online.connections = [];
         Online.hostConn = null;
-    };
-
-    window.restartRound = function() {
-        if (isMultiplayer && !Online.isHost) return; // Only host restarts round
-        
-        if (timerInterval) clearInterval(timerInterval); 
-        if (cpuThinkTimer) clearInterval(cpuThinkTimer);
-        document.getElementById('game-msg').style.display = 'none';
-        
-        // Reset Scene but keep connection
-        if (scene) { while(scene.children.length > 0){ const o = scene.children[0]; if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); scene.remove(o); } }
-        players.length = 0; activeLightnings.length = 0; activeParticles.length = 0; activeProjectiles.length = 0; 
-        playerRage = { red: 0, blue: 0 }; 
-        
-        // Host triggers start logic again
-        if (isMultiplayer && Online.isHost) {
-            Network.hostStartGame(); 
-        } else {
-            // SP Restart
-            window.startBattle(); 
-        }
     };
     
     window.askOracle = async function() { 
