@@ -379,12 +379,25 @@
             .card { font-size: 0.8rem; }
             .name-text, .hp-text, .fatigue-text, .rage-text { font-size: 0.75rem; }
         }
+
+        /* Cleanup Overlay */
+        #cleanup-msg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.85); z-index: 5000; pointer-events: auto;
+        }
+        #cleanup-msg.active { display: flex; }
+        #cleanup-msg h1 { color: #ff99cc; text-shadow: 0 0 20px #ff00cc; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="viewport">
+    <div id="cleanup-msg" class="overlay-screen">
+        <h1 class="breathing-text">等待戰場清理中...</h1>
+    </div>
+
     <div id="main-menu" class="overlay-screen active">
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
@@ -558,6 +571,7 @@
             swapSkill: "磁鐵交換", counterSkill: "防禦反擊",
             targetLocked: "(目標鎖定中)", dead: "芭比Q啦", fatigue: "疲勞", rage: "怒氣",
             defendFatigue: "防禦疲勞中", defend: "防禦", tired: "力盡🧱",
+            cleanup: "等待戰場清理中...",
             cardDescs: {
                 0: "造成物理傷害，增加紅色怒氣",
                 1: "造成魔法傷害，增加藍色怒氣",
@@ -598,6 +612,7 @@
             swapSkill: "Magnet Swap", counterSkill: "Counter",
             targetLocked: "(Target Locked)", dead: "Barbecued", fatigue: "Fatigue", rage: "Rage",
             defendFatigue: "Fatigued", defend: "Defend", tired: "Tired🧱",
+            cleanup: "Waiting for battlefield cleanup...",
             cardDescs: {
                 0: "Deals Physical DMG, builds Red Rage",
                 1: "Deals Magic DMG, builds Blue Rage",
@@ -685,6 +700,10 @@
         safeSetText('card-3', t.cardNames[3]);
         safeSetText('defend-card', t.cardNames[4]);
         safeSetText('super-card', t.cardNames[5]);
+        
+        // Set cleanup message
+        const cleanupMsg = document.querySelector('#cleanup-msg h1');
+        if(cleanupMsg) cleanupMsg.innerText = t.cleanup;
         
         CARD_NAMES = [...t.moveNames]; 
 
@@ -1143,20 +1162,36 @@
             this.aura = new SuperAura(this.group); this.ballRotationMultiplier = 1.0; 
 
             // FIX: depthWrite: false, colorWrite: false
-            const hitGeo = new THREE.BoxGeometry(30, 50, 30); 
+            const hitGeo = new THREE.BoxGeometry(4, 7, 4); // SHRUNK HITBOX 
             const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }); 
-            this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 15; this.group.add(this.hitBox);
+            this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 3.5; this.group.add(this.hitBox);
             
             const uiData = createUnitUISprite(); this.uiSprite = uiData.sprite; this.uiCtx = uiData.ctx; this.uiTexture = uiData.texture;
-            this.uiSprite.position.y = 8.5; this.group.add(this.uiSprite);
+            this.uiSprite.position.y = 8.5; 
             
+            // --- NEW: UI SPECIFIC HITBOX ---
+            const uiHitGeo = new THREE.BoxGeometry(18, 30, 18); // Size matches UI sprite area
+            const uiHitBox = new THREE.Mesh(uiHitGeo, hitMat);
+            uiHitBox.position.set(0, 8, 0); 
+            // Only add UI hitbox for others
+            if (this.id !== myPlayerIndex) {
+                 this.group.add(uiHitBox);
+            }
+            
+            // ALWAYS ADD uiSprite, but updateLabel will hide text for self
+            this.group.add(this.uiSprite);
+
             const shieldTex = createBrokenShieldTexture(); const shieldMat = new THREE.SpriteMaterial({ map: shieldTex, transparent: true, opacity: 0.5, depthTest: false, depthWrite: false });
             this.brokenShieldIcon = new THREE.Sprite(shieldMat); this.brokenShieldIcon.scale.set(8, 8, 1); this.brokenShieldIcon.position.set(0, 14, 0); 
-            this.brokenShieldIcon.renderOrder = 998; this.brokenShieldIcon.visible = false; this.group.add(this.brokenShieldIcon);
-
+            this.brokenShieldIcon.renderOrder = 998; this.brokenShieldIcon.visible = false; 
+            this.group.add(this.brokenShieldIcon); 
+            
             this.labelSprite = createTextSprite(this.getDisplayName()); this.labelSprite.position.y = -3.5; this.labelSprite.scale.set(10, 2.5, 1);
             this.labelSprite.renderOrder = 999;
-            this.group.add(this.labelSprite);
+            // FIX: Only add label sprite for other players
+            if (this.id !== myPlayerIndex) {
+                this.group.add(this.labelSprite);
+            }
             
             this.modelContainer = new THREE.Group(); this.group.add(this.modelContainer);
             
@@ -1226,7 +1261,54 @@
              return wins > 0 ? `${baseName} ${"👑".repeat(wins)}` : baseName;
         }
         refreshLabel() { if(this.labelSprite) { this.labelSprite.material.map.dispose(); this.labelSprite.material.map = createTextSprite(this.getDisplayName()).material.map; } if(this.brokenShieldIcon) { this.brokenShieldIcon.material.map.dispose(); this.brokenShieldIcon.material.map = createBrokenShieldTexture(); } if(this.targetLabel) { this.targetLabel.material.map.dispose(); this.targetLabel.material.map = createTextSprite(TRANSLATIONS[currentLang].targetLocked).material.map; } }
-        updateLabel() { if (!this.uiCtx) return; const ctx = this.uiCtx; ctx.clearRect(0, 0, 512, 256); const t = TRANSLATIONS[currentLang]; if (!this.alive) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(50, 40, 412, 160); ctx.font = 'bold 80px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff99cc'; ctx.fillText(t.dead, 256, 150); this.uiTexture.needsUpdate = true; return; } const r = this.rage, u = Math.floor(Math.max(r.red, r.blue)); ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(50, 40, 412, 160); ctx.font = 'bold 36px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = 'white'; ctx.fillText(`HP: ${this.hp}/${this.maxHP}  ${t.rage}: ${u}%`, 256, 85); ctx.fillStyle = '#1a1a1a'; ctx.fillRect(80, 110, 352, 20); ctx.fillStyle = '#2ecc71'; ctx.fillRect(80, 110, 352 * (this.hp/this.maxHP), 20); ctx.fillStyle = '#1a1a1a'; ctx.fillRect(80, 145, 352, 15); ctx.fillStyle = (r.red > r.blue) ? '#ff5555' : (r.blue > r.red ? '#55ccff' : '#ffaa00'); ctx.fillRect(80, 145, 352 * (u/100), 15); this.uiTexture.needsUpdate = true; }
+        updateLabel() { 
+            if (!this.uiCtx) return; 
+            const ctx = this.uiCtx; 
+            ctx.clearRect(0, 0, 512, 256); 
+            const t = TRANSLATIONS[currentLang]; 
+            
+            if (!this.alive) { 
+                ctx.fillStyle = 'rgba(0,0,0,0.6)'; 
+                ctx.fillRect(50, 40, 412, 160); 
+                ctx.font = 'bold 80px Arial'; 
+                ctx.textAlign = 'center'; 
+                ctx.fillStyle = '#ff99cc'; 
+                ctx.fillText(t.dead, 256, 150); 
+                this.uiTexture.needsUpdate = true; 
+                return; 
+            } 
+            const r = this.rage, u = Math.floor(Math.max(r.red, r.blue)); 
+            
+            // Background
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; 
+            if (this.id === myPlayerIndex) {
+                 ctx.fillRect(50, 100, 412, 70); // Smaller bg for bars only
+            } else {
+                 ctx.fillRect(50, 40, 412, 160); // Full bg
+            }
+
+            // Text (Only for others)
+            if (this.id !== myPlayerIndex) {
+                ctx.font = 'bold 36px Arial'; 
+                ctx.textAlign = 'center'; 
+                ctx.fillStyle = 'white'; 
+                ctx.fillText(`HP: ${this.hp}/${this.maxHP}  ${t.rage}: ${u}%`, 256, 85); 
+            }
+            
+            // HP Bar
+            ctx.fillStyle = '#1a1a1a'; 
+            ctx.fillRect(80, 110, 352, 20); 
+            ctx.fillStyle = '#2ecc71'; 
+            ctx.fillRect(80, 110, 352 * (this.hp/this.maxHP), 20); 
+            
+            // Rage Bar
+            ctx.fillStyle = '#1a1a1a'; 
+            ctx.fillRect(80, 145, 352, 15); 
+            ctx.fillStyle = (r.red > r.blue) ? '#ff5555' : (r.blue > r.red ? '#55ccff' : '#ffaa00'); 
+            ctx.fillRect(80, 145, 352 * (u/100), 15); 
+            
+            this.uiTexture.needsUpdate = true; 
+        }
         face(pos) { if (!this.alive) return; const lp = pos.clone(); lp.y = this.group.position.y; const dummy = new THREE.Object3D(); dummy.position.copy(this.group.position); dummy.lookAt(lp); this.targetQuaternion = dummy.quaternion.clone(); }
         takeDamage(amt, type = 0, sourcePos = null) { 
             this.hp = Math.max(0, this.hp - Math.floor(amt)); 
@@ -1539,8 +1621,31 @@
                     const wName = winner ? winner.getDisplayName() : "Draw";
                     if (isMultiplayer && window.Online.isHost) {
                         window.Network.broadcast({ type: 'GAME_OVER', isFinal: false, autoRestart: true, winnerName: wName, scores: matchScores });
-                        setTimeout(() => { if(gameState !== 'IDLE') window.Network.hostStartGame(); }, 5000);
-                    } else if (!isMultiplayer) { startRoundTransition(wName); setTimeout(() => window.restartRound(), 5000); }
+                        setTimeout(() => { 
+                            // Add cleanup overlay
+                            const cleanupMsg = document.getElementById('cleanup-msg');
+                            if(cleanupMsg) cleanupMsg.classList.add('active');
+                            window.Network.broadcast({ type: 'SHOW_CLEANUP' }); // Broadcast cleanup
+                            
+                            setTimeout(() => {
+                                if(gameState !== 'IDLE') {
+                                    window.Network.hostStartGame(); 
+                                    if(cleanupMsg) cleanupMsg.classList.remove('active');
+                                    window.Network.broadcast({ type: 'HIDE_CLEANUP' }); // Broadcast hide cleanup
+                                }
+                            }, 3000); // 3 seconds cleanup time
+                        }, 5000);
+                    } else if (!isMultiplayer) { 
+                        startRoundTransition(wName); 
+                        setTimeout(() => {
+                            const cleanupMsg = document.getElementById('cleanup-msg');
+                            if(cleanupMsg) cleanupMsg.classList.add('active');
+                            setTimeout(() => {
+                                window.restartRound();
+                                if(cleanupMsg) cleanupMsg.classList.remove('active');
+                            }, 3000);
+                        }, 5000); 
+                    }
                 }
             } else if (window.Online.isHost || !isMultiplayer) startTurn();
         
@@ -1619,7 +1724,7 @@
             if (players[opposite] && players[opposite].alive) return opposite;
             if (players[left] && players[left].alive) return left;
             if (players[right] && players[right].alive) return right;
-            return -1;
+            return getRandomTarget(myId);
         };
 
         players.forEach((p, i) => { 
@@ -1769,7 +1874,7 @@
         // 2D Reticle Animation
         if (p.id === selectedTargetId && p.id !== myPlayerIndex && p.selectionSprite && players[selectedTargetId].alive) { 
             p.selectionSprite.visible = true; 
-            // Scale reduced 30% (Base 5 -> 3.5, Var 1.0 -> 0.7)
+            // Scale reduced (Base 3.5, Var 0.7)
             const scaleBase = 3.5; const scaleVar = Math.sin(Date.now() * 0.005) * 0.7;
             p.selectionSprite.scale.set(scaleBase + scaleVar, scaleBase + scaleVar, 1);
             p.selectionSprite.material.rotation += 0.02;
