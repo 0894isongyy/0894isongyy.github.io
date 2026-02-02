@@ -106,16 +106,8 @@
 
         /* Preset Names Styling */
         .preset-container {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
-            max-width: 350px; margin-bottom: 15px;
-        }
-        .preset-tag {
-            background: rgba(255, 153, 204, 0.15); border: 1px solid var(--primary-gold);
-            color: #ddd; padding: 4px 10px; border-radius: 15px; font-size: 0.8rem;
-            cursor: pointer; transition: 0.2s;
-        }
-        .preset-tag:hover {
-            background: var(--primary-gold); color: #000; transform: scale(1.05);
+            display: flex; justify-content: center;
+            width: 100%; margin-bottom: 10px;
         }
 
         .room-code-display {
@@ -395,6 +387,7 @@
         </div>
         <button id="btn-create" class="btn-gold" onclick="window.UI.showCreate()">創建戰場 (支援連線)</button>
         <button id="btn-join" class="btn-gold" onclick="window.UI.showJoin()">加入網絡對戰</button>
+        <!-- Removed Tutorial Button -->
         <div class="studio-footer">JASDEV STUDIO 2025</div>
     </div>
 
@@ -462,6 +455,8 @@
 
     <div id="turn-hint" class="flashing">請選擇下方的卡牌並點選對手</div>
 
+    <!-- Removed Char Select Screen as logic handles it -->
+
     <div id="game-msg"></div>
     <div id="dmg-container" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:4000; overflow:hidden;"></div>
 
@@ -518,12 +513,13 @@
     let isMultiplayer = false;
     let matchScores = {}; 
     let CARD_NAMES = []; 
+    // Fix: Re-add isTutorialMode
     let isTutorialMode = false;
 
     let activeLightnings = [], activeParticles = [], activeProjectiles = [];
     const SHARED_BOX_GEO = new THREE.BoxGeometry(1.2, 1.2, 1.2);
 
-    const PRESET_NAMES = ['奧丁下班沒', '洛基斑斑', '英靈殿清潔工', '女武神外送中', '彩虹橋收費員', '腰酸背索爾', '芬里爾不拆家'];
+    const PRESET_NAMES = ['奧丁下班沒', '洛基斑斑', '英靈殿清潔工', '女武神外送中', '彩虹橋收費員', '腰酸背索爾', '芬里爾不拆家', '萊爾AI校長', '老柯', '韓國魚丸長', '侯友宜結金蘭', '花媽', '鄧不麗君', '公道伯'];
 
     // --- 2. TRANSLATION SYSTEM & UTILS (Must be first) ---
     let currentLang = 'zh-TW';
@@ -537,6 +533,7 @@
             joinTitle: "加入網絡對戰", codePlaceholder: "4位數房號", doConnectBtn: "開始連線",
             lobbyTitle: "準備大廳", lobbyShare: "請將房號分享給朋友 (最多4人)", leaveRoom: "離開房間",
             waitingHost: "等待房主開始遊戲...", startGame: "開始遊戲",
+            selectCharTitle: "選擇你的豬豬戰士",
             startBattle: "開始決鬥", 
             back: "返回", backMenu: "回主選單",
             odinName: "奧丁豬", odinDesc: "雷霆與榮耀",
@@ -577,6 +574,7 @@
             joinTitle: "Join Network Arena", codePlaceholder: "4-Digit Room Code", doConnectBtn: "Connect",
             lobbyTitle: "Lobby", lobbyShare: "Share Room Code (Max 4 Players)", leaveRoom: "Leave Room",
             waitingHost: "Waiting for host to start...", startGame: "Start Game",
+            selectCharTitle: "Select Your Warrior",
             startBattle: "Start Battle",
             back: "Back", backMenu: "Main Menu",
             odinName: "Odin", odinDesc: "Thunder & Glory",
@@ -620,22 +618,26 @@
         if (el) el.innerText = text;
     }
 
-    // Helper to render name presets
+    // Helper to render name presets - SINGLE BUTTON
     function renderNamePresets(containerId, inputId) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.innerHTML = '';
-        PRESET_NAMES.forEach(name => {
-            const tag = document.createElement('div');
-            tag.className = 'preset-tag';
-            tag.innerText = name;
-            tag.onclick = () => {
-                const input = document.getElementById(inputId);
-                if (input) input.value = name;
-                SoundEngine.init(); SoundEngine.play('click');
-            };
-            container.appendChild(tag);
-        });
+        
+        const btn = document.createElement('button');
+        btn.className = 'btn-small';
+        btn.style.marginBottom = '15px';
+        btn.innerHTML = '🎲 隨機生成名字';
+        btn.onclick = () => {
+            const input = document.getElementById(inputId);
+            const randName = PRESET_NAMES[Math.floor(Math.random() * PRESET_NAMES.length)];
+            if (input) {
+                input.value = randName;
+            }
+            SoundEngine.init(); 
+            SoundEngine.play('click');
+        };
+        container.appendChild(btn);
     }
 
     // Explicitly define updateText on window to guarantee access
@@ -665,8 +667,14 @@
         safeSetText('btn-leave-room', t.leaveRoom);
         safeSetText('client-msg', t.waitingHost);
         
-        // Removed char-select-title etc updates since elements are removed
-
+        safeSetText('char-select-title', t.selectCharTitle);
+        safeSetText('char-name-odin', t.odinName);
+        safeSetText('char-desc-odin', t.odinDesc);
+        safeSetText('char-name-loki', t.lokiName);
+        safeSetText('char-desc-loki', t.lokiDesc);
+        safeSetText('btn-start-battle', t.startBattle);
+        safeSetText('btn-back-menu', t.back);
+        
         safeSetText('turn-hint', t.turnHint);
         safeSetText('card-0', t.cardNames[0]);
         safeSetText('card-1', t.cardNames[1]);
@@ -1099,64 +1107,8 @@
     class MeatDrop { constructor(t,s=1, isSuper=false){this.m=createMeatModelShared(s);this.m.position.set(t.x,t.y+400,t.z);this.ty=t.y;this.v=0;this.e=false;this.isSuper=isSuper;scene.add(this.m);} update(dt){if(this.e)return false;this.v+=900*dt;this.m.position.y-=this.v*dt;this.m.rotation.y+=dt*5;if(this.m.position.y<=this.ty){this.m.position.y=this.ty;this.expl();return false;}return true;} expl(){if(this.e)return;this.e=true;const scale=this.isSuper?3.0:1.0;createExplosion(this.m.position,scale);if(this.m.parent)scene.remove(this.m);} }
     class ParabolicMeatProjectile { constructor(s,e){this.s=s.clone();this.e=e.clone();this.m=createMeatModelShared(7.0);scene.add(this.m);this.p=0;} update(dt){if(this.p>=1){if(this.m.parent)scene.remove(this.m);createExplosion(this.m.position, 3.0); return false;}this.p+=dt/0.8;const c=new THREE.Vector3().lerpVectors(this.s,this.e,this.p);c.y+=Math.sin(this.p*Math.PI)*150;this.m.position.copy(c);this.m.rotation.x+=dt*10;return true;} }
     
-    // --- 7. FIREWORKS SYSTEM (2D Overlay) ---
-    const Fireworks = {
-        canvas: null, ctx: null, particles: [], width: 0, height: 0, animationId: null,
-        init() {
-            if (this.canvas) return;
-            this.canvas = document.createElement('canvas');
-            this.canvas.style.position = 'fixed'; this.canvas.style.top = '0'; this.canvas.style.left = '0';
-            this.canvas.style.width = '100%'; this.canvas.style.height = '100%';
-            this.canvas.style.pointerEvents = 'none'; this.canvas.style.zIndex = '3001'; 
-            document.body.appendChild(this.canvas);
-            this.ctx = this.canvas.getContext('2d');
-            this.resize();
-            window.addEventListener('resize', () => this.resize());
-        },
-        resize() {
-            if(this.canvas) {
-                this.width = window.innerWidth; this.height = window.innerHeight;
-                this.canvas.width = this.width; this.canvas.height = this.height;
-            }
-        },
-        createParticle(x, y, color) {
-            for (let i = 0; i < 30; i++) {
-                this.particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
-                    alpha: 1, color: color
-                });
-            }
-        },
-        start() {
-            this.init(); this.particles = [];
-            if (this.animationId) cancelAnimationFrame(this.animationId);
-            this.animate();
-        },
-        stop() {
-            if (this.animationId) cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-            if(this.ctx) this.ctx.clearRect(0, 0, this.width, this.height);
-        },
-        animate() {
-            if (!this.ctx) return;
-            this.animationId = requestAnimationFrame(() => this.animate());
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; this.ctx.fillRect(0, 0, this.width, this.height);
-            if (Math.random() < 0.05) {
-                const x = Math.random() * this.width; const y = Math.random() * (this.height / 2);
-                const color = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                this.createParticle(x, y, color);
-            }
-            for (let i = this.particles.length - 1; i >= 0; i--) {
-                const p = this.particles[i];
-                p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.alpha -= 0.01;
-                this.ctx.globalAlpha = p.alpha; this.ctx.fillStyle = p.color;
-                this.ctx.beginPath(); this.ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); this.ctx.fill();
-                if (p.alpha <= 0) this.particles.splice(i, 1);
-            }
-            this.ctx.globalAlpha = 1;
-        }
-    };
+    // --- 7. FIREWORKS SYSTEM (REMOVED) ---
+    // Removed Fireworks object and logic as requested
 
     // --- 8. HELPER FUNCTIONS FOR 3D (MOVED DOWN) ---
     function createUnitUISprite() { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 256; const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false })); sprite.scale.set(12, 6, 1); sprite.renderOrder = 999; return { sprite, canvas, ctx, texture }; }
@@ -1252,8 +1204,8 @@
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
             
             this.selectionSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: createReticleTexture(), transparent: true, depthTest: false, depthWrite: false }));
-            this.selectionSprite.scale.set(7, 7, 1); 
-            this.selectionSprite.position.set(0, 10, 0); // Chest height
+            this.selectionSprite.scale.set(5, 5, 1); 
+            this.selectionSprite.position.set(0, 3.5, 0); // Head height
             this.selectionSprite.visible = false;
             this.group.add(this.selectionSprite);
             
@@ -1375,7 +1327,38 @@
         if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); 
         let dmg = (attacker.type === 'Loki') ? 60 : 80; // FIX: Base on attacker
         victim.takeDamage(dmg, 0, attacker.group.position); spawnDamageNumber(victim, dmg); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
-        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { target.ballRotationMultiplier = 15.0; await sleep(1000); const originalBallPos = target.ball.position.clone(); const worldPosAttacker = new THREE.Vector3(); attacker.group.getWorldPosition(worldPosAttacker); worldPosAttacker.y += 30; await new Promise(res => { const start = target.ball.position.clone(), localTarget = target.modelContainer.worldToLocal(worldPosAttacker.clone()), t = performance.now(); function fly() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, localTarget, p); if (p < 1) requestAnimationFrame(fly); else res(); } fly(); }); SoundEngine.play('hit'); createExplosion(attacker.group.position, 2.0); await new Promise(res => { const start = target.ball.position.clone(), t = performance.now(); function back() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, originalBallPos, p); if (p < 1) requestAnimationFrame(back); else res(); } back(); }); target.ballRotationMultiplier = 1.0; } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
+        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { 
+            // --- UPDATED LOKI MAGIC REFLECT ANIMATION ---
+            target.ballRotationMultiplier = 15.0; 
+            target.aura.activate(false); // Blue Aura for magic reflect
+            const originalBallPos = target.ball.position.clone(); 
+            const worldPosAttacker = new THREE.Vector3(); 
+            attacker.group.getWorldPosition(worldPosAttacker); 
+            worldPosAttacker.y += 30; 
+            
+            // Grow ball
+            target.ball.scale.set(3,3,3);
+
+            await new Promise(res => { 
+                const start = target.ball.position.clone(), localTarget = target.modelContainer.worldToLocal(worldPosAttacker.clone()), t = performance.now(); 
+                function fly() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, localTarget, p); if (p < 1) requestAnimationFrame(fly); else res(); } 
+                fly(); 
+            }); 
+            
+            SoundEngine.play('hit'); 
+            createExplosion(attacker.group.position, 2.0); 
+            
+            await new Promise(res => { 
+                const start = target.ball.position.clone(), t = performance.now(); 
+                function back() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, originalBallPos, p); if (p < 1) requestAnimationFrame(back); else res(); } 
+                back(); 
+            }); 
+            
+            // Reset
+            target.ball.scale.set(1,1,1);
+            target.aura.deactivate();
+            target.ballRotationMultiplier = 1.0; 
+        } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
     }
     async function performLightningStorm(p) { 
         SoundEngine.play('super'); 
@@ -1503,7 +1486,38 @@
                 else { p.face(new THREE.Vector3(0,0,0)); await performLightningStorm(p); }
                 // Removed post-execution reset
             } 
-            else if (cid >= 0 && cid < 2) { if (t && t.alive) { await focusOnAction(p, t, 600); p.face(t.group.position); } await performAttack(p, t, cid); } 
+            else if (cid >= 0 && cid < 2) { 
+                if (t && t.alive) { 
+                    await focusOnAction(p, t, 600); 
+                    p.face(t.group.position); 
+                } 
+                // --- UPDATED LOKI PHYSICAL ATTACK ANIMATION ---
+                if (p.type === 'Loki' && cid === 0) {
+                     p.aura.activate(true); // Red Aura
+                     p.ballRotationMultiplier = 15.0;
+                     // Grow Ball
+                     p.ball.scale.set(3,3,3);
+                     await sleep(600); // Wait for grow/spin
+                     
+                     // Move Group
+                     const op = p.group.position.clone();
+                     const tp = t.group.position.clone();
+                     const sPos = tp.clone().add(op.clone().sub(tp).normalize().multiplyScalar(45));
+                     
+                     await move(p.group, sPos, 150);
+                     SoundEngine.play('hit'); 
+                     calcDamage(p, t, 0); 
+                     await sleep(300);
+                     
+                     // Reset
+                     p.ball.scale.set(1,1,1);
+                     p.aura.deactivate();
+                     p.ballRotationMultiplier = 1.0;
+                     await move(p.group, op, 500);
+                } else {
+                     await performAttack(p, t, cid); 
+                }
+            } 
             
             if (localDemoId !== currentDemoId) return; 
             hideMove(); window.updateHPUI(); await sleep(300); resetCamera(); await sleep(1500); 
@@ -1616,6 +1630,8 @@
                 p.face(players[defaultTarget].group.position);
                 // 對於本機玩家，更新紅色選取圈
                 if (i === myPlayerIndex) selectedTargetId = defaultTarget;
+            } else {
+                 if (i === myPlayerIndex) selectedTargetId = -1; // Hide Reticle
             }
         });
         resetCamera(); window.updateHPUI(); 
@@ -1667,11 +1683,17 @@
                     p.action.target = getPriorityTarget(p.id);
                 }
             }
+            // Show Reticle if we have a target
+            if (p.action.target !== -1 && p.action.target !== myPlayerIndex) {
+                 selectedTargetId = p.action.target;
+            }
         }
         
         // 防禦、反射、魔法奧義(AOE) 仍需以自身為目標 (邏輯上)
         if (i === 2 || i === 3 || i === 4 || isMagicUlt) { 
              p.action.target = myPlayerIndex; 
+             // Hide reticle for self-target moves
+             selectedTargetId = -1;
         }
 
         if (isMultiplayer && !window.Online.isHost) window.Network.sendHost({ type: 'ACTION_SUBMIT', action: p.action });
@@ -1679,7 +1701,9 @@
 
     function handleInt(x, y) { 
         if (gameState !== 'WAITING') return; 
-        if (selectedSlot === -1) return; 
+        // Allow clicking enemies even without card selected (to change target)
+        // if (selectedSlot === -1) return; 
+        
         const p = players[myPlayerIndex]; if (!p || !p.alive) return;
         const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera); 
         const chars = players.filter(pl => pl && pl.id !== myPlayerIndex && pl.alive).map(pl => pl.group); const intersects = raycaster.intersectObjects(chars, true); 
@@ -1739,9 +1763,10 @@
         for(let i=activeProjectiles.length-1; i>=0; i--) if(!activeProjectiles[i].update(dt)) activeProjectiles.splice(i,1); 
         if (renderer && scene && camera) { players.forEach(p => { if(p && p.alive) { p.group.position.y = 50 + Math.sin(Date.now()*0.003 + p.id)*4; p.uiSprite.quaternion.copy(camera.quaternion); if (p.targetQuaternion) p.group.quaternion.slerp(p.targetQuaternion, 5 * dt); if(p.hexShield && p.hexShield.visible) p.hexShield.rotation.z += 0.05; if(p.type === 'Loki' && p.ball) { p.ball.rotation.y += 0.05 * p.ballRotationMultiplier; p.ball.rotation.x += 0.02 * p.ballRotationMultiplier; } const r = p.rage, maxRage = Math.max(r.red, r.blue); if (maxRage >= 99) { if (!p.aura.active || p.aura.isRed !== (r.red >= r.blue)) p.aura.activate(r.red >= r.blue); } else if (p.aura.active) p.aura.deactivate(); p.aura.update(dt); if (p.brokenShieldIcon && p.brokenShieldIcon.visible) { const s = 8 + Math.sin(Date.now() * 0.005) * 1.5; p.brokenShieldIcon.scale.set(s, s, 1); p.brokenShieldIcon.material.opacity = 0.6 + Math.sin(Date.now() * 0.005) * 0.2; } 
         // 2D Reticle Animation
-        if (p.id === selectedTargetId && p.id !== myPlayerIndex && p.selectionSprite) { 
+        if (p.id === selectedTargetId && p.id !== myPlayerIndex && p.selectionSprite && players[selectedTargetId].alive) { 
             p.selectionSprite.visible = true; 
-            const scaleBase = 20; const scaleVar = Math.sin(Date.now() * 0.005) * 3;
+            // Scale reduced (Base 5, Var 1.0)
+            const scaleBase = 5; const scaleVar = Math.sin(Date.now() * 0.005) * 1.0;
             p.selectionSprite.scale.set(scaleBase + scaleVar, scaleBase + scaleVar, 1);
             p.selectionSprite.material.rotation += 0.02;
         } else if (p.selectionSprite) { 
