@@ -4,380 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>豬神黃昏 Pignarok Arena (Ver 22.9)</title>
-    <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        /* --- 基礎設定 --- */
-        :root {
-            --ui-max-width: 500px;
-            --primary-gold: #ff99cc;
-            --bg-overlay: rgba(0, 0, 0, 0.4);
-            --accent-blue: #55ccff;
-        }
-
-        body {
-            margin: 0; padding: 0; overflow: hidden;
-            font-family: 'Cinzel', serif, "Microsoft JhengHei", "Helvetica Neue", sans-serif;
-            background: #000; color: white;
-            touch-action: none; width: 100vw; height: 100vh;
-            -webkit-user-select: none; user-select: none;
-        }
-        
-        #viewport {
-            position: relative; width: 100%; height: 100%;
-            background: #87CEEB; overflow: hidden;
-        }
-
+        :root { --ui-max-width: 500px; --primary-gold: #ff99cc; --bg-overlay: rgba(0, 0, 0, 0.4); --accent-blue: #55ccff; }
+        body { margin: 0; padding: 0; overflow: hidden; font-family: 'Cinzel', serif, "Microsoft JhengHei", sans-serif; background: #000; color: white; touch-action: none; width: 100vw; height: 100vh; user-select: none; -webkit-user-select: none; }
+        #viewport { position: relative; width: 100%; height: 100%; background: #87CEEB; overflow: hidden; }
         #viewport canvas { display: block; width: 100% !important; height: 100% !important; outline: none; }
-
-        .overlay-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: radial-gradient(circle, rgba(40, 20, 80, 0.95) 0%, rgba(10, 5, 20, 1) 100%);
-            z-index: 2000; transition: opacity 0.5s ease; padding: 20px; box-sizing: border-box;
-            opacity: 0; pointer-events: none; /* 預設隱藏 */
-        }
-        
-        .overlay-screen.active {
-            opacity: 1; pointer-events: auto;
-        }
-
-        /* 主畫面背景豬 (Menu Hero Pig) */
-        .menu-bg-pig {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%); 
-            width: 80%;
-            max-width: 500px;
-            height: auto;
-            max-height: 60vh; 
-            opacity: 0.25; 
-            z-index: 0; 
-            pointer-events: none;
-            object-fit: contain;
-        }
-
-        h1 { 
-            font-size: clamp(2.5rem, 8vw, 4.5rem); margin-bottom: 5px; color: var(--primary-gold); 
-            text-shadow: 0 0 20px rgba(255, 153, 204, 0.6); letter-spacing: 5px; text-align: center; 
-            z-index: 2;
-            position: relative; 
-        }
-        .sub-title { 
-            font-size: 1.2rem; color: #fff; margin-bottom: 5px; letter-spacing: 2px; opacity: 0.8; 
-            z-index: 2; 
-            position: relative;
-        }
-        
-        .version-text {
-            font-size: 0.8rem;
-            color: #d4af37; 
-            margin-bottom: 30px;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            font-family: monospace;
-            z-index: 2;
-            position: relative;
-        }
-
-        .studio-footer {
-            position: absolute;
-            bottom: 15px;
-            width: 100%;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #666;
-            font-family: 'Cinzel', serif;
-            letter-spacing: 3px;
-            opacity: 0.7;
-        }
-
+        .overlay-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(40, 20, 80, 0.95) 0%, rgba(10, 5, 20, 1) 100%); z-index: 2000; transition: opacity 0.5s ease; padding: 20px; box-sizing: border-box; opacity: 0; pointer-events: none; }
+        .overlay-screen.active { opacity: 1; pointer-events: auto; }
+        .menu-bg-pig { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; max-width: 500px; height: auto; max-height: 60vh; opacity: 0.25; z-index: 0; pointer-events: none; object-fit: contain; }
+        h1 { font-size: clamp(2.5rem, 8vw, 4.5rem); margin-bottom: 5px; color: var(--primary-gold); text-shadow: 0 0 20px rgba(255, 153, 204, 0.6); letter-spacing: 5px; text-align: center; z-index: 2; position: relative; }
+        .sub-title { font-size: 1.2rem; color: #fff; margin-bottom: 5px; letter-spacing: 2px; opacity: 0.8; z-index: 2; position: relative; }
+        .version-text { font-size: 0.8rem; color: #d4af37; margin-bottom: 30px; letter-spacing: 1px; opacity: 0.9; font-family: monospace; z-index: 2; position: relative; }
+        .studio-footer { position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 0.75rem; color: #666; font-family: 'Cinzel', serif; letter-spacing: 3px; opacity: 0.7; }
         h2 { font-size: 1.4rem; color: #fff; margin-bottom: 20px; border-bottom: 2px solid var(--primary-gold); padding-bottom: 8px; }
-
-        input.input-box, select.input-box {
-            background: rgba(255, 255, 255, 0.1); border: 2px solid var(--primary-gold);
-            color: white; padding: 12px; font-size: 1.2rem; margin: 10px 0;
-            border-radius: 8px; text-align: center; width: 80%; max-width: 300px;
-            font-family: inherit; outline: none;
-        }
+        input.input-box, select.input-box { background: rgba(255, 255, 255, 0.1); border: 2px solid var(--primary-gold); color: white; padding: 12px; font-size: 1.2rem; margin: 10px 0; border-radius: 8px; text-align: center; width: 80%; max-width: 300px; font-family: inherit; outline: none; }
         select.input-box option { background: #333; color: white; }
         input.input-box::placeholder { color: #aaa; }
-
-        .room-code-display {
-            font-size: 3rem; color: var(--accent-blue); letter-spacing: 10px;
-            margin: 20px 0; padding: 15px 40px; border: 3px dashed rgba(255, 255, 255, 0.3);
-            background: rgba(0,0,0,0.3); border-radius: 10px;
-        }
-
-        .player-list {
-            list-style: none; padding: 0; width: 100%; max-width: 400px; margin: 20px 0;
-            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden;
-        }
-        .player-list li {
-            background: rgba(255,255,255,0.05); padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .room-code-display { font-size: 3rem; color: var(--accent-blue); letter-spacing: 10px; margin: 20px 0; padding: 15px 40px; border: 3px dashed rgba(255, 255, 255, 0.3); background: rgba(0,0,0,0.3); border-radius: 10px; }
+        .player-list { list-style: none; padding: 0; width: 100%; max-width: 400px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; overflow: hidden; }
+        .player-list li { background: rgba(255,255,255,0.05); padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
         .tag-host { color: #f1c40f; font-size: 0.8rem; border: 1px solid #f1c40f; padding: 2px 6px; border-radius: 4px; }
         .tag-me { color: #2ecc71; font-size: 0.8rem; }
-
-        @keyframes breathe {
-            0% { opacity: 0.5; transform: scale(0.98); }
-            50% { opacity: 1; transform: scale(1.02); }
-            100% { opacity: 0.5; transform: scale(0.98); }
-        }
-        .breathing-text {
-            animation: breathe 2.5s infinite ease-in-out;
-            color: #88ccff;
-            font-size: 0.9rem;
-            margin-top: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-
-        .mini-char-select {
-            display: flex; gap: 10px; margin: 15px 0; width: 80%; max-width: 300px;
-        }
-        .mini-card {
-            flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px;
-            cursor: pointer; transition: 0.2s; background: rgba(0,0,0,0.3);
-            display: flex; flex-direction: column; align-items: center; opacity: 0.6;
-        }
-        .mini-card.active {
-            border-color: var(--primary-gold); background: rgba(255, 153, 204, 0.2);
-            opacity: 1; transform: scale(1.05);
-        }
+        @keyframes breathe { 0% { opacity: 0.5; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1.02); } 100% { opacity: 0.5; transform: scale(0.98); } }
+        .breathing-text { animation: breathe 2.5s infinite ease-in-out; color: #88ccff; font-size: 0.9rem; margin-top: 10px; margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
+        .mini-char-select { display: flex; gap: 10px; margin: 15px 0; width: 80%; max-width: 300px; }
+        .mini-card { flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px; cursor: pointer; transition: 0.2s; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; opacity: 0.6; }
+        .mini-card.active { border-color: var(--primary-gold); background: rgba(255, 153, 204, 0.2); opacity: 1; transform: scale(1.05); }
         .mini-icon { font-size: 1.5rem; margin-bottom: 5px; }
-
-        #turn-hint {
-            position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
-            color: #fff; font-size: 1rem; font-weight: bold; text-shadow: 0 0 10px #000;
-            background: var(--bg-overlay); padding: 5px 15px; border-radius: 20px;
-            display: none; z-index: 50; pointer-events: none;
-            white-space: nowrap; border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        @media (min-width: 768px) { #turn-hint { top: 100px; font-size: 1.2rem; } }
-
+        #turn-hint { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); color: #fff; font-size: 1rem; font-weight: bold; text-shadow: 0 0 10px #000; background: var(--bg-overlay); padding: 5px 15px; border-radius: 20px; display: none; z-index: 50; pointer-events: none; white-space: nowrap; border: 1px solid rgba(255, 255, 255, 0.2); }
         @keyframes hint-flash { 0%, 100% { opacity: 1; transform: translateX(-50%) scale(1); } 50% { opacity: 0.3; transform: translateX(-50%) scale(0.95); } }
         .flashing { animation: hint-flash 1s infinite ease-in-out; }
-
-        .btn-gold {
-            padding: 12px 30px; font-size: 1.1rem; background: rgba(255, 153, 204, 0.2);
-            border: 2px solid var(--primary-gold); color: var(--primary-gold); cursor: pointer; border-radius: 50px;
-            transition: all 0.3s; font-family: 'Cinzel', serif; text-transform: uppercase;
-            max-width: 300px; width: 100%; margin-bottom: 15px;
-            z-index: 5;
-        }
+        .btn-gold { padding: 12px 30px; font-size: 1.1rem; background: rgba(255, 153, 204, 0.2); border: 2px solid var(--primary-gold); color: var(--primary-gold); cursor: pointer; border-radius: 50px; transition: all 0.3s; font-family: 'Cinzel', serif; text-transform: uppercase; max-width: 300px; width: 100%; margin-bottom: 15px; z-index: 5; }
         .btn-gold:hover { background: var(--primary-gold); color: #1a0d0d; transform: scale(1.05); }
         .btn-gold:disabled { border-color: #555; color: #888; background: transparent; cursor: not-allowed; transform: none; }
-
         .btn-back { border-color: #aaa; color: #ccc; font-size: 0.9rem; padding: 8px 20px; margin-top: 10px; width: auto; }
-
-        .lang-container {
-            display: flex; gap: 15px; margin-bottom: 30px;
-            z-index: 5;
-        }
-        .btn-lang {
-            padding: 8px 20px; font-size: 0.9rem; background: transparent;
-            border: 1px solid #fff; color: #fff; cursor: pointer; border-radius: 20px;
-            transition: all 0.3s;
-        }
+        .lang-container { display: flex; gap: 15px; margin-bottom: 30px; z-index: 5; }
+        .btn-lang { padding: 8px 20px; font-size: 0.9rem; background: transparent; border: 1px solid #fff; color: #fff; cursor: pointer; border-radius: 20px; transition: all 0.3s; }
         .btn-lang.active { background: var(--primary-gold); color: #000; border-color: var(--primary-gold); }
         .btn-lang:hover { transform: scale(1.1); }
-
-        .selection-container { 
-            display: flex; gap: 15px; margin-bottom: 30px; width: 100%; max-width: 600px;
-            flex-direction: row; 
-        }
-        @media (max-width: 350px) { .selection-container { flex-direction: column; } }
-
-        .char-card {
-            flex: 1; background: rgba(255,255,255,0.05); border: 2px solid transparent;
-            border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.3s;
-            display: flex; flex-direction: column; align-items: center; text-align: center;
-        }
+        .selection-container { display: flex; gap: 15px; margin-bottom: 30px; width: 100%; max-width: 600px; flex-direction: row; }
+        .char-card { flex: 1; background: rgba(255,255,255,0.05); border: 2px solid transparent; border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; text-align: center; }
         .char-card.active { border-color: var(--primary-gold); background: rgba(255, 153, 204, 0.2); transform: translateY(-5px); }
         .char-portrait-icon { font-size: 3rem; margin-bottom: 5px; }
-
         #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        
-        #top-announcer {
-            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            width: 100%; max-width: var(--ui-max-width);
-            text-align: center; pointer-events: none; z-index: 100;
-        }
+        #top-announcer { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: 100%; max-width: var(--ui-max-width); text-align: center; pointer-events: none; z-index: 100; }
         #timer { color: #fff; font-size: 2.5rem; font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,1); }
-        #move-display {
-            color: var(--primary-gold); font-size: clamp(1rem, 3.5vw, 1.3rem); font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,1);
-            margin-top: 5px; opacity: 0; transition: opacity 0.3s;
-            background: rgba(0,0,0,0.8); padding: 12px 30px; border-radius: 50px;
-            display: inline-block; border: 3px solid var(--primary-gold);
-            white-space: normal; width: auto;
-        }
-
-        #status-log {
-            position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: var(--ui-max-width); height: 42px; background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 153, 204, 0.4); border-radius: 8px; padding: 5px; font-size: 0.8rem; overflow-y: auto;
-            pointer-events: auto; color: #eee; backdrop-filter: blur(3px); z-index: 30; text-align: left;
-        }
-        
-        #card-description {
-            position: absolute; bottom: 160px; 
-            left: 0; width: 100%;
-            text-align: center; color: #ffeb3b; font-size: 0.85rem; font-weight: bold;
-            text-shadow: 0 0 5px #000; pointer-events: none;
-            opacity: 0; transition: opacity 0.3s;
-            background: linear-gradient(to right, transparent, rgba(0,0,0,0.7), transparent);
-            padding: 5px 0; z-index: 25;
-        }
-
-        #bottom-ui-container {
-            position: absolute; bottom: 30px; 
-            left: 0; width: 100%;
-            display: flex; justify-content: center;
-            padding: 10px 0 20px 0; 
-            background: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0.6) 80%, transparent);
-            pointer-events: auto; z-index: 20;
-        }
-
-        #card-area { 
-            display: flex; flex-direction: row; gap: 3px; 
-            width: 98%; max-width: var(--ui-max-width); 
-            justify-content: space-evenly; align-items: flex-end; 
-        }
-
-        #player-hp-card {
-            flex: 1.2; height: 95px; min-width: 50px;
-            background: rgba(80, 0, 40, 0.7); border: 1.5px solid var(--primary-gold); border-radius: 8px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 4px 2px; color: #fff; backdrop-filter: blur(10px);
-            font-size: 0.58rem; font-weight: bold; line-height: 1.3; text-align: center; box-sizing: border-box;
-        }
-
+        #move-display { color: var(--primary-gold); font-size: clamp(1rem, 3.5vw, 1.3rem); font-weight: bold; text-shadow: 0 0 15px rgba(0,0,0,1); margin-top: 5px; opacity: 0; transition: opacity 0.3s; background: rgba(0,0,0,0.8); padding: 12px 30px; border-radius: 50px; display: inline-block; border: 3px solid var(--primary-gold); white-space: normal; width: auto; }
+        #card-description { position: absolute; bottom: 160px; left: 0; width: 100%; text-align: center; color: #ffeb3b; font-size: 0.85rem; font-weight: bold; text-shadow: 0 0 5px #000; pointer-events: none; opacity: 0; transition: opacity 0.3s; background: linear-gradient(to right, transparent, rgba(0,0,0,0.7), transparent); padding: 5px 0; z-index: 25; }
+        #bottom-ui-container { position: absolute; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; padding: 10px 0 20px 0; background: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0.6) 80%, transparent); pointer-events: auto; z-index: 20; }
+        #card-area { display: flex; flex-direction: row; gap: 3px; width: 98%; max-width: var(--ui-max-width); justify-content: space-evenly; align-items: flex-end; }
+        #player-hp-card { flex: 1.2; height: 95px; min-width: 50px; background: rgba(80, 0, 40, 0.7); border: 1.5px solid var(--primary-gold); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 2px; color: #fff; backdrop-filter: blur(10px); font-size: 0.58rem; font-weight: bold; line-height: 1.3; text-align: center; box-sizing: border-box; }
         .name-text { font-size: 0.62rem; color: var(--primary-gold); margin-bottom: 2px; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .hp-text { font-size: 0.58rem; color: #ffccdd; }
         .fatigue-text { color: #ffaa00; font-size: 0.52rem; }
         .rage-text { font-size: 0.52rem; color: #ff8888; }
-
-        .card {
-            flex: 1; height: 95px; min-width: 40px; 
-            background: rgba(255, 255, 255, 0.1); border: 1.2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px; cursor: pointer; transition: 0.2s;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; color: #fff; font-weight: bold; backdrop-filter: blur(5px); 
-            font-size: 0.55rem; 
-            padding: 2px; box-sizing: border-box; user-select: none;
-        }
+        .card { flex: 1; height: 95px; min-width: 40px; background: rgba(255, 255, 255, 0.1); border: 1.2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; font-weight: bold; backdrop-filter: blur(5px); font-size: 0.55rem; padding: 2px; box-sizing: border-box; user-select: none; }
         .card:active { transform: scale(0.92); }
-        .card.selected { 
-            border-color: var(--primary-gold); background: rgba(255, 153, 204, 0.3); 
-            transform: scale(1.15) translateY(-10px); box-shadow: 0 0 20px rgba(255, 153, 204, 0.6); z-index: 100;
-        }
+        .card.selected { border-color: var(--primary-gold); background: rgba(255, 153, 204, 0.3); transform: scale(1.15) translateY(-10px); box-shadow: 0 0 20px rgba(255, 153, 204, 0.6); z-index: 100; }
         .card.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
         .card.disabled-tut { opacity: 0.3; pointer-events: none; filter: grayscale(1); border-color: #555; }
         .card.demoing { border-color: #55ccff; background: rgba(0, 100, 200, 0.4); transform: scale(1.05); }
-
         .card:hover { background: rgba(255, 255, 255, 0.2); }
-
         @keyframes card-breathing-red { 0%, 100% { box-shadow: 0 0 5px #ff5555; } 50% { box-shadow: 0 0 20px #ff0000; } }
         @keyframes card-breathing-blue { 0%, 100% { box-shadow: 0 0 5px #55ccff; } 50% { box-shadow: 0 0 20px #0088ff; } }
-        
         .card.super { color: #000; border-color: #fff; font-weight: 800; }
         .card.super-red { animation: card-breathing-red 1.5s infinite; background: linear-gradient(135deg, #ff9999, #fff); }
         .card.super-blue { animation: card-breathing-blue 1.5s infinite; background: linear-gradient(135deg, #99ccff, #fff); }
-
-        .circle-btn {
-            position: absolute; width: 45px; height: 45px; border-radius: 50%;
-            background: rgba(0, 0, 0, 0.6); border: 2px solid var(--primary-gold);
-            color: #fff; font-size: 0.8rem; font-weight: bold;
-            cursor: pointer; z-index: 200; display: flex; justify-content: center; align-items: center;
-            pointer-events: auto; transition: all 0.2s;
-            top: 20px; top: max(20px, env(safe-area-inset-top));
-        }
+        .circle-btn { position: absolute; width: 45px; height: 45px; border-radius: 50%; background: rgba(0, 0, 0, 0.6); border: 2px solid var(--primary-gold); color: #fff; font-size: 0.8rem; font-weight: bold; cursor: pointer; z-index: 200; display: flex; justify-content: center; align-items: center; pointer-events: auto; transition: all 0.2s; top: 20px; top: max(20px, env(safe-area-inset-top)); }
         .circle-btn:hover { transform: scale(1.1); background: var(--primary-gold); color: #000; }
-
         .home-btn { left: 20px; left: max(20px, env(safe-area-inset-left)); font-size: 1.5rem; padding-bottom: 3px; }
-
-        #game-msg {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 1rem; 
-            color: #fff; display: none; background: rgba(0,0,0,0.95);
-            padding: 15px 25px; 
-            border-radius: 15px; 
-            border: 2px solid var(--primary-gold); 
-            z-index: 3000;
-            text-align: center; width: 80%; 
-            max-width: 280px; 
-            backdrop-filter: blur(10px);
-            flex-direction: column; align-items: center; 
-            gap: 10px; 
-        }
-
-        #tutorial-ui {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            display: none; flex-direction: column; align-items: center;
-            background: linear-gradient(to top, rgba(0,0,0,1) 40%, rgba(0,0,0,0.8) 90%, transparent);
-            padding-bottom: 20px; pointer-events: auto; z-index: 25;
-        }
-        #tutorial-desc {
-            color: #fff; font-size: 1rem; text-align: center; margin-bottom: 10px;
-            padding: 10px 20px; background: rgba(0,0,0,0.5); border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.2); width: 90%; max-width: var(--ui-max-width);
-        }
-        .tutorial-controls {
-            display: flex; gap: 3px; width: 98%; max-width: var(--ui-max-width);
-            justify-content: center; margin-bottom: 10px;
-        }
+        #game-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1rem; color: #fff; display: none; background: rgba(0,0,0,0.95); padding: 15px 25px; border-radius: 15px; border: 2px solid var(--primary-gold); z-index: 3000; text-align: center; width: 80%; max-width: 280px; backdrop-filter: blur(10px); flex-direction: column; align-items: center; gap: 10px; }
+        #tutorial-ui { position: absolute; bottom: 0; left: 0; width: 100%; display: none; flex-direction: column; align-items: center; background: linear-gradient(to top, rgba(0,0,0,1) 40%, rgba(0,0,0,0.8) 90%, transparent); padding-bottom: 20px; pointer-events: auto; z-index: 25; }
+        #tutorial-desc { color: #fff; font-size: 1rem; text-align: center; margin-bottom: 10px; padding: 10px 20px; background: rgba(0,0,0,0.5); border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); width: 90%; max-width: var(--ui-max-width); }
+        .tutorial-controls { display: flex; gap: 3px; width: 98%; max-width: var(--ui-max-width); justify-content: center; margin-bottom: 10px; }
         .back-btn-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
-        .btn-small {
-            padding: 8px 15px; font-size: 0.9rem; background: rgba(0,0,0,0.6);
-            border: 1px solid #fff; color: #fff; cursor: pointer; border-radius: 20px;
-            font-family: 'Cinzel', serif;
-        }
-
-        .damage-popup {
-            position: absolute;
-            color: #ff0000; 
-            font-family: "Arial Black", "Arial", sans-serif;
-            font-weight: 900;
-            font-size: 2.2rem;
-            letter-spacing: -2px;
-            text-shadow: 
-                2px 2px 0 #000, 
-               -1px -1px 0 #000,  
-                1px -1px 0 #000,
-               -1px 1px 0 #000,
-                1px 1px 0 #000,
-                3px 3px 5px rgba(0,0,0,0.5);
-            pointer-events: none;
-            z-index: 4000;
-            user-select: none;
-            opacity: 0;
-            transform: scale(0.5);
-        }
-        
-        @keyframes damage-pop {
-            0% { transform: translateY(0) scale(0.5); opacity: 0; }
-            20% { transform: translateY(-30px) scale(1.3); opacity: 1; }
-            40% { transform: translateY(-40px) scale(1.0); opacity: 1; }
-            80% { transform: translateY(-60px) scale(1.0); opacity: 1; }
-            100% { transform: translateY(-80px) scale(0.8); opacity: 0; }
-        }
-
-        @media (min-width: 1024px) {
-            #status-log { bottom: 150px; width: 100%; font-size: 1rem; height: 50px; }
-            .card { font-size: 0.8rem; }
-            .name-text, .hp-text, .fatigue-text, .rage-text { font-size: 0.75rem; }
-        }
+        .btn-small { padding: 8px 15px; font-size: 0.9rem; background: rgba(0,0,0,0.6); border: 1px solid #fff; color: #fff; cursor: pointer; border-radius: 20px; font-family: 'Cinzel', serif; }
+        .damage-popup { position: absolute; color: #ff0000; font-family: "Arial Black", "Arial", sans-serif; font-weight: 900; font-size: 2.2rem; letter-spacing: -2px; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 3px 3px 5px rgba(0,0,0,0.5); pointer-events: none; z-index: 4000; user-select: none; opacity: 0; transform: scale(0.5); }
+        @keyframes damage-pop { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { transform: translateY(-30px) scale(1.3); opacity: 1; } 40% { transform: translateY(-40px) scale(1.0); opacity: 1; } 80% { transform: translateY(-60px) scale(1.0); opacity: 1; } 100% { transform: translateY(-80px) scale(0.8); opacity: 0; } }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="viewport">
-    
     <div id="main-menu" class="overlay-screen active">
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
@@ -387,8 +97,8 @@
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
         </div>
-        <button id="btn-create" class="btn-gold" onclick="UI.showCreate()">創建戰場 (支援連線)</button>
-        <button id="btn-join" class="btn-gold" onclick="UI.showJoin()">加入網絡對戰</button>
+        <button id="btn-create" class="btn-gold" onclick="window.UI.showCreate()">創建戰場 (支援連線)</button>
+        <button id="btn-join" class="btn-gold" onclick="window.UI.showJoin()">加入網絡對戰</button>
         <button id="btn-tutorial" class="btn-gold" onclick="window.startTutorialSelection()">角色教學</button>
         <div class="studio-footer">JASDEV STUDIO 2025</div>
     </div>
@@ -414,8 +124,8 @@
                 <div>Loki</div>
             </div>
         </div>
-        <button id="btn-do-create" class="btn-gold" onclick="Network.createGame()">生成房間</button>
-        <button id="btn-create-back" class="btn-gold btn-back" onclick="UI.showMenu()">返回</button>
+        <button id="btn-do-create" class="btn-gold" onclick="window.Network.createGame()">生成房間</button>
+        <button id="btn-create-back" class="btn-gold btn-back" onclick="window.UI.showMenu()">返回</button>
     </div>
 
     <div id="screen-join" class="overlay-screen">
@@ -434,8 +144,8 @@
             </div>
         </div>
         <p id="join-status" style="color:#55ccff; font-size:0.9rem; min-height:20px;"></p>
-        <button class="btn-gold" id="btn-connect" onclick="Network.joinGame()">開始連線</button>
-        <button id="btn-join-back" class="btn-gold btn-back" onclick="UI.showMenu()">返回</button>
+        <button class="btn-gold" id="btn-connect" onclick="window.Network.joinGame()">開始連線</button>
+        <button id="btn-join-back" class="btn-gold btn-back" onclick="window.UI.showMenu()">返回</button>
     </div>
 
     <div id="screen-lobby" class="overlay-screen">
@@ -445,7 +155,7 @@
         <div id="lobby-hint" class="breathing-text">(人數不足 4 人會加入電腦操作角色)</div>
         <ul class="player-list" id="lobby-list"></ul>
         <div id="host-controls" style="display:none; width:100%; text-align:center;">
-            <button class="btn-gold" id="btn-start-net" onclick="Network.hostStartGame()" disabled>開始遊戲</button>
+            <button class="btn-gold" id="btn-start-net" onclick="window.Network.hostStartGame()" disabled>開始遊戲</button>
         </div>
         <div id="client-msg" style="display:none; color:#aaa; margin-top:20px;">等待房主開始遊戲...</div>
         <button id="btn-leave-room" class="btn-gold btn-back" onclick="window.resetGame()">離開房間</button>
@@ -521,6 +231,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
 <script>
+    // --- 1. GLOBAL VARIABLES & CONSTANTS ---
     const APP_ID_PREFIX = "pig-ragnarok-v1-"; 
     const apiKey = ""; 
     const MAX_HP_ODIN = 500; 
@@ -530,8 +241,24 @@
     let DEFAULT_CAM_POS = new THREE.Vector3(0, BASE_CAM_Y, BASE_CAM_Z);
     const DEFAULT_LOOK_AT = new THREE.Vector3(0, 40, -20);
     let targetWins = 2; 
-    
-    // --- TRANSLATION SYSTEM ---
+
+    let scene, camera, renderer, clock, raycaster;
+    let players = [], gameState = 'IDLE', timeLeft = TURN_TIME, selectedSlot = -1, selectedTargetId = -1;
+    let timerInterval, cpuThinkTimer, playerRage = { red: 0, blue: 0 };
+    let selectedPlayerType = 'Odin';
+    let isTutorialMode = false; let isTutorialSelection = false;
+    let currentDemoId = 0; 
+    const mouse = new THREE.Vector2();
+    let animationId = null; 
+    let myPlayerIndex = 0; 
+    let isMultiplayer = false;
+    let matchScores = {}; 
+    let CARD_NAMES = []; 
+
+    let activeLightnings = [], activeParticles = [], activeProjectiles = [];
+    const SHARED_BOX_GEO = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+
+    // --- 2. TRANSLATION SYSTEM (DEFINED FIRST) ---
     let currentLang = 'zh-TW';
     const TRANSLATIONS = {
         'zh-TW': {
@@ -583,15 +310,11 @@
             logBlock: "格檔！", logCounter: "的反擊在奧義面前失效了！",
             logReflect: "的反射在奧義面前失效了！", logHit: "的攻擊！",
             playerSuffix: " (我)", cpuPrefix: "(CPU) ",
-            tutorialName: "教學", dummyName: "假人", civilian: "路人",
-            ragnarok: "諸神的黃昏已經降臨...", pigKing: "豬豬之王誕生了！",
             lockingTargets: "鎖定目標！",
             waitingOthers: "等待其他玩家...",
-            connError: "連線錯誤", incomplete: "輸入不完整", hostLeft: "房主已斷線，遊戲結束",
-            winSuffix: "勝",
             roundWinner: "回合勝利者：", nextRoundIn: "等待玩家連線同步中...",
             currentRound: "當前局分",
-            dmgLog: "造成 {dmg} 傷害！"
+            dmgLog: "造成 {dmg} 傷害！", winSuffix: "勝"
         },
         'en-US': {
             title: "PIGNAROK", singlePlayer: "Single Player", tutorial: "Tutorial",
@@ -612,7 +335,7 @@
             moveNames: ["Melee", "Magic", "Counter", "Reflect", "Defend", "Ultimate"],
             cardNames: { 0: "Melee⚔️", 1: "Magic🪄", 2: "Count🛡️", 3: "Refl💎", 4: "Def🧱", 5: "Ult🔥", swap: "Swap🌀" },
             tutCardNames: { 5: "Phys Ult🔥", 6: "Mag Ult⚡" },
-            victory: "VICTORY!", gameOver: "GAME OVER", restart: "Play Again", finalVictory: "The New Emperor!", finalMenu: "Main Menu",
+            victory: "VICTORY!", gameOver: "GAME OVER", restart: "Next Round", finalVictory: "The New Emperor!", finalMenu: "Main Menu",
             swapSkill: "Spatial Swap", counterSkill: "Counter",
             targetLocked: "(Target Locked)", dead: "Barbecued", fatigue: "Fatigue", rage: "Rage",
             defendFatigue: "Fatigued", defend: "Defend", tired: "Tired🧱",
@@ -641,33 +364,185 @@
             logBlock: "Blocked", logCounter: "'s counter failed against Ultimate!",
             logReflect: "'s reflect failed against Ultimate!", logHit: "'s attack!",
             playerSuffix: " (Me)", cpuPrefix: "(CPU) ",
-            tutorialName: "Teacher", dummyName: "Dummy", civilian: "Civilian",
-            ragnarok: "Ragnarok has come...", pigKing: "The Pig King is born!",
             lockingTargets: "Locking Targets!",
             waitingOthers: "Waiting for others...",
-            connError: "Connection Error", incomplete: "Input incomplete", hostLeft: "Host disconnected, game over",
-            winSuffix: " Wins",
             roundWinner: "Round Winner: ", nextRoundIn: "Waiting for player sync...",
             currentRound: "Current Scores",
-            dmgLog: "hit for {dmg} damage!"
+            dmgLog: "hit for {dmg} damage!", winSuffix: " Wins"
         }
     };
-    let CARD_NAMES = []; 
 
-    let scene, camera, renderer, clock, raycaster;
-    let players = [], gameState = 'IDLE', timeLeft = TURN_TIME, selectedSlot = -1, selectedTargetId = -1;
-    let timerInterval, cpuThinkTimer, playerRage = { red: 0, blue: 0 };
-    let selectedPlayerType = 'Odin';
-    let isTutorialMode = false; let isTutorialSelection = false;
-    let currentDemoId = 0; 
-    const mouse = new THREE.Vector2();
-    let animationId = null; 
-    let myPlayerIndex = 0; 
-    let isMultiplayer = false;
+    // --- 3. BASIC HELPERS AND GLOBAL UTILS (DEFINED FIRST) ---
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function move(obj, target, ms) { return new Promise(res => { const start = obj.position.clone(), t = performance.now(); function up() { let p = Math.min(1, (performance.now() - t) / ms); obj.position.lerpVectors(start, target, p); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); }
+    function log(m) { /* Disabled */ }
     
-    let matchScores = {}; 
+    // Explicitly define updateText on window to guarantee access
+    window.updateText = function() {
+        const t = TRANSLATIONS[currentLang];
+        document.getElementById('menu-title').innerText = t.title;
+        document.getElementById('btn-create').innerText = t.createGameBtn;
+        document.getElementById('btn-join').innerText = t.joinGameBtn;
+        document.getElementById('lobby-hint').innerText = t.lobbyHint;
+        
+        document.getElementById('create-title').innerText = t.createTitle;
+        document.getElementById('create-name-label').innerText = t.enterName;
+        document.getElementById('host-name').placeholder = t.namePlaceholder;
+        document.getElementById('create-char-label').innerText = t.chooseChar;
+        document.getElementById('btn-do-create').innerText = t.doCreateBtn;
+        document.getElementById('btn-create-back').innerText = t.backBtn;
 
-    const Online = {
+        document.getElementById('join-title').innerText = t.joinTitle;
+        document.getElementById('join-name').placeholder = t.namePlaceholder;
+        document.getElementById('join-code').placeholder = t.codePlaceholder;
+        document.getElementById('join-char-label').innerText = t.chooseChar;
+        document.getElementById('btn-connect').innerText = t.doConnectBtn;
+        document.getElementById('btn-join-back').innerText = t.backBtn;
+
+        document.getElementById('lobby-title').innerText = t.lobbyTitle;
+        document.getElementById('lobby-share-hint').innerText = t.lobbyShare;
+        document.getElementById('btn-leave-room').innerText = t.leaveRoom;
+        document.getElementById('client-msg').innerText = t.waitingHost;
+        const startNetBtn = document.getElementById('btn-start-net');
+        
+        document.getElementById('btn-tutorial').innerText = t.tutorial;
+        document.getElementById('char-select-title').innerText = isTutorialSelection ? t.selectPracticeChar : t.selectCharTitle;
+        document.getElementById('char-name-odin').innerText = t.odinName;
+        document.getElementById('char-desc-odin').innerText = t.odinDesc;
+        document.getElementById('char-name-loki').innerText = t.lokiName;
+        document.getElementById('char-desc-loki').innerText = t.lokiDesc;
+        document.getElementById('btn-start-battle').innerText = isTutorialSelection ? t.startPractice : t.startBattle;
+        document.getElementById('btn-back-menu').innerText = t.back;
+        document.getElementById('btn-back-tut').innerText = t.backMenu;
+        document.getElementById('turn-hint').innerText = t.turnHint;
+        document.getElementById('card-0').innerText = t.cardNames[0];
+        document.getElementById('card-1').innerText = t.cardNames[1];
+        document.getElementById('card-3').innerText = t.cardNames[3];
+        document.getElementById('defend-card').innerText = t.cardNames[4];
+        document.getElementById('super-card').innerText = t.cardNames[5];
+        
+        document.getElementById('tut-card-0').innerText = t.cardNames[0];
+        document.getElementById('tut-card-1').innerText = t.cardNames[1];
+        document.getElementById('tut-card-2').innerText = t.cardNames[2]; 
+        document.getElementById('tut-card-3').innerText = t.cardNames[3];
+        document.getElementById('tut-card-4').innerText = t.cardNames[4];
+        document.getElementById('tut-card-5').innerText = t.tutCardNames[5];
+        document.getElementById('tut-card-6').innerText = t.tutCardNames[6];
+
+        if (gameState === 'TUTORIAL_IDLE') { document.getElementById('tutorial-desc').innerText = t.tutDesc; }
+        CARD_NAMES = [...t.moveNames]; 
+
+        if (players.length > 0) {
+            const p = players[myPlayerIndex]; 
+            if(p) {
+                const slot2 = document.getElementById('slot-2-btn');
+                const tutSlot2 = document.getElementById('tut-card-2');
+                if (p.type === 'Loki') {
+                    slot2.innerText = t.cardNames.swap; 
+                    if(tutSlot2) tutSlot2.innerText = t.cardNames.swap;
+                    CARD_NAMES[2] = t.swapSkill;
+                } else {
+                    slot2.innerText = t.cardNames[2];
+                    if(tutSlot2) tutSlot2.innerText = t.cardNames[2];
+                    CARD_NAMES[2] = t.counterSkill;
+                }
+                const defBtn = document.getElementById('defend-card');
+                if (p.fatigue >= 100) defBtn.innerText = t.tired; else defBtn.innerText = t.cardNames[4];
+                players.forEach(pl => pl.refreshLabel());
+                document.getElementById('player-name-display').innerText = p.getDisplayName();
+            }
+        }
+        if (selectedSlot !== -1 && players.length > 0) showCardDescription(selectedSlot);
+    };
+
+    window.setLang = function(lang) {
+        currentLang = lang;
+        document.getElementById('lang-zh').classList.toggle('active', lang === 'zh-TW');
+        document.getElementById('lang-en').classList.toggle('active', lang === 'en-US');
+        window.updateText();
+    };
+
+    const SoundEngine = { ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); }, play(type) { this.init(); const now = this.ctx.currentTime; const masterGain = this.ctx.createGain(); masterGain.connect(this.ctx.destination); masterGain.gain.setValueAtTime(0.4, now); const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4); env.gain.setValueAtTime(0.12, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.4); dur=0.4; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); env.gain.setValueAtTime(0.3, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } };
+
+    function showMove(text) { const md = document.getElementById('move-display'); md.innerText = text; md.style.opacity = "1"; md.classList.add('announce-anim'); }
+    function hideMove() { const md = document.getElementById('move-display'); md.style.opacity = "0"; md.classList.remove('announce-anim'); }
+
+    function spawnDamageNumber(target, amount) { if (!target) return; const div = document.createElement('div'); div.className = 'damage-popup'; if (typeof amount === 'number') { div.innerText = "-" + amount; div.style.color = "#ff0000"; } else { div.innerText = amount; div.style.color = "#ffff00"; } const pos = target.group.position.clone().add(new THREE.Vector3(0, 40, 0)); const vector = pos.project(camera); const x = (vector.x * .5 + .5) * window.innerWidth; const y = (-(vector.y * .5) + .5) * window.innerHeight; div.style.left = `${x}px`; div.style.top = `${y}px`; div.style.animation = 'damage-pop 0.8s ease-out forwards'; const container = document.getElementById('dmg-container'); if(container) container.appendChild(div); setTimeout(() => { if (div.parentNode) div.parentNode.removeChild(div); }, 800); }
+
+    function resetCamera() { if (camera) { adjustCameraForResponsive(); camera.position.copy(DEFAULT_CAM_POS); camera.lookAt(DEFAULT_LOOK_AT); } }
+    
+    function adjustCameraForResponsive(snap = false) { 
+        if (!camera || !renderer) return; 
+        const aspect = window.innerWidth / window.innerHeight; 
+        let targetY = BASE_CAM_Y; let targetZ = BASE_CAM_Z; 
+        if (aspect > 1.2) { targetY = 240; targetZ = 550; } else if (aspect < 0.6) { targetZ = 850; targetY = 320; } 
+        let rotY = 0; if (myPlayerIndex === 1) rotY = Math.PI; else if (myPlayerIndex === 2) rotY = Math.PI/2; else if (myPlayerIndex === 3) rotY = -Math.PI/2;
+        const basePos = new THREE.Vector3(0, targetY, targetZ); basePos.applyAxisAngle(new THREE.Vector3(0,1,0), rotY); DEFAULT_CAM_POS.copy(basePos);
+        if (snap) { camera.position.copy(DEFAULT_CAM_POS); camera.lookAt(DEFAULT_LOOK_AT); } 
+        else if (gameState === 'WAITING' || gameState === 'IDLE' || gameState === 'TUTORIAL_IDLE') { camera.position.lerp(DEFAULT_CAM_POS, 0.1); camera.lookAt(DEFAULT_LOOK_AT); } 
+    }
+
+    function showCardDescription(index) {
+        const descEl = document.getElementById('card-description');
+        const t = TRANSLATIONS[currentLang];
+        const p = players[myPlayerIndex]; 
+        let desc = "";
+        if (!p) return;
+        if (index === 2 || index === 5) desc = t.cardDescs[index][p.type];
+        else desc = t.cardDescs[index];
+        descEl.innerText = desc;
+        descEl.style.opacity = 1;
+    }
+
+    function hideCardDescription() { document.getElementById('card-description').style.opacity = 0; }
+
+    // --- GAME STATE HELPERS ---
+    function updateHPUI() {
+        const t = TRANSLATIONS[currentLang];
+        const p = players[myPlayerIndex]; if (!p) return; 
+
+        if (!isTutorialMode) {
+            const hpLine = document.getElementById('hp-line'), fatLine = document.getElementById('fatigue-line');
+            const rageLine = document.getElementById('rage-line'), defBtn = document.getElementById('defend-card'), superBtn = document.getElementById('super-card');
+            if(hpLine) hpLine.innerText = `HP: ${p.hp}/${p.maxHP}`;
+            if(fatLine) { fatLine.innerText = `${t.fatigue}: ${p.fatigue}%`; fatLine.style.color = p.fatigue >= 100 ? "#ff0000" : "#ffaa00"; }
+            const curRage = Math.floor(Math.max(p.rage.red, p.rage.blue));
+            if(rageLine) { rageLine.innerText = `${t.rage}: ${curRage}%`; rageLine.style.color = p.rage.red > p.rage.blue ? "#ff5555" : (p.rage.blue > p.rage.red ? "#55ccff" : "#ffaa00"); }
+            if (defBtn) { if (p.fatigue >= 100) { defBtn.classList.add('disabled'); defBtn.innerText = t.tired; } else { defBtn.classList.remove('disabled'); defBtn.innerText = t.cardNames[4]; } }
+            if (superBtn) {
+                superBtn.className = "card super"; 
+                if (curRage >= 99) {
+                    superBtn.style.display = 'flex';
+                    if (p.rage.blue > p.rage.red) { superBtn.classList.add('super-blue'); superBtn.innerText = t.cardNames[5]; }
+                    else { superBtn.classList.add('super-red'); superBtn.innerText = t.cardNames[5]; }
+                } else { superBtn.style.display = 'none'; }
+            }
+        }
+        players.forEach(pl => { 
+            if (pl.selectionRing) pl.selectionRing.visible = (selectedTargetId === pl.id); 
+            if (pl.updateLabel) pl.updateLabel(); 
+            if (pl.brokenShieldIcon) { pl.brokenShieldIcon.visible = pl.showBrokenShield; }
+        });
+        if (window.UI) window.UI.updateScoreboard(); 
+    }
+
+    function gainRage(p, isRed, amt) { 
+        if (isRed) { p.rage.blue = 0; p.rage.red = Math.min(100, p.rage.red + amt); } 
+        else { p.rage.red = 0; p.rage.blue = Math.min(100, p.rage.blue + amt); } 
+        if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
+        updateHPUI(); if(p.updateLabel) p.updateLabel(); 
+    }
+    
+    function loseRage(p, isRed) { 
+        const currentRage = isRed ? p.rage.red : p.rage.blue;
+        if (currentRage >= 100) return; 
+        if (isRed) p.rage.red = Math.max(0, p.rage.red - 30); 
+        else p.rage.blue = Math.max(0, p.rage.blue - 30); 
+        if (p.id === 0) { playerRage.red = p.rage.red; playerRage.blue = p.rage.blue; }
+    }
+
+    // --- 4. CORE OBJECTS (UI, Network, Online) ---
+    window.Online = {
         isHost: false,
         myName: "Player",
         roomCode: "",
@@ -680,151 +555,7 @@
         matchConfig: { targetWins: 2 }
     };
 
-    let activeLightnings = [], activeParticles = [], activeProjectiles = [];
-    const SHARED_BOX_GEO = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-
-    const SoundEngine = { ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); }, play(type) { this.init(); const now = this.ctx.currentTime; const masterGain = this.ctx.createGain(); masterGain.connect(this.ctx.destination); masterGain.gain.setValueAtTime(0.4, now); const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4); env.gain.setValueAtTime(0.12, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.4); dur=0.4; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); env.gain.setValueAtTime(0.3, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } };
-
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-    function move(obj, target, ms) { return new Promise(res => { const start = obj.position.clone(), t = performance.now(); function up() { let p = Math.min(1, (performance.now() - t) / ms); obj.position.lerpVectors(start, target, p); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); }
-    
-    function adjustCameraForResponsive(snap = false) { 
-        if (!camera || !renderer) return; 
-        const aspect = window.innerWidth / window.innerHeight; 
-        let targetY = BASE_CAM_Y; let targetZ = BASE_CAM_Z; 
-        
-        // Portrait mode adjustments (wider view, further back)
-        if (aspect > 1.2) { 
-            targetY = 240; targetZ = 550; 
-        } else if (aspect < 0.6) { 
-            targetZ = 850; // Increased Z for vertical screens
-            targetY = 320; 
-        } else {
-            targetZ = 650;
-            targetY = 280;
-        }
-        
-        let rotY = 0;
-        if (myPlayerIndex === 1) rotY = Math.PI;
-        else if (myPlayerIndex === 2) rotY = Math.PI/2;
-        else if (myPlayerIndex === 3) rotY = -Math.PI/2;
-
-        const basePos = new THREE.Vector3(0, targetY, targetZ);
-        basePos.applyAxisAngle(new THREE.Vector3(0,1,0), rotY);
-
-        DEFAULT_CAM_POS.copy(basePos);
-        
-        if (snap) {
-            camera.position.copy(DEFAULT_CAM_POS);
-            camera.lookAt(DEFAULT_LOOK_AT);
-        } else if (gameState === 'WAITING' || gameState === 'IDLE' || gameState === 'TUTORIAL_IDLE') { 
-            camera.position.lerp(DEFAULT_CAM_POS, 0.1); 
-            camera.lookAt(DEFAULT_LOOK_AT); 
-        } 
-    }
-    
-    function resetCamera() { 
-        if (camera) { 
-            adjustCameraForResponsive(); 
-            camera.position.copy(DEFAULT_CAM_POS); 
-            camera.lookAt(DEFAULT_LOOK_AT); 
-        } 
-    }
-
-    function showMove(text) {
-        const md = document.getElementById('move-display');
-        md.innerText = text;
-        md.style.opacity = "1";
-        md.classList.add('announce-anim');
-    }
-
-    function hideMove() {
-        const md = document.getElementById('move-display');
-        md.style.opacity = "0";
-        md.classList.remove('announce-anim');
-    }
-
-    function spawnDamageNumber(target, amount) {
-        if (!target) return;
-        const txt = TRANSLATIONS[currentLang];
-        const div = document.createElement('div');
-        div.className = 'damage-popup';
-        if (typeof amount === 'number') {
-            div.innerText = "-" + amount;
-            div.style.color = "#ff0000"; 
-        } else {
-            div.innerText = amount;
-            div.style.color = "#ffff00"; 
-        }
-        const pos = target.group.position.clone().add(new THREE.Vector3(0, 40, 0));
-        const vector = pos.project(camera);
-        const x = (vector.x * .5 + .5) * window.innerWidth;
-        const y = (-(vector.y * .5) + .5) * window.innerHeight;
-        div.style.left = `${x}px`;
-        div.style.top = `${y}px`;
-        div.style.animation = 'damage-pop 0.8s ease-out forwards';
-        const container = document.getElementById('dmg-container');
-        if(container) container.appendChild(div);
-        setTimeout(() => { if (div.parentNode) div.parentNode.removeChild(div); }, 800);
-    }
-
-    window.setLang = function(lang) {
-        currentLang = lang;
-        document.getElementById('lang-zh').classList.toggle('active', lang === 'zh-TW');
-        document.getElementById('lang-en').classList.toggle('active', lang === 'en-US');
-        updateText();
-    };
-
-    function updateText() {
-        const t = TRANSLATIONS[currentLang];
-        document.getElementById('menu-title').innerText = t.title;
-        document.getElementById('btn-create').innerText = t.createGameBtn;
-        document.getElementById('btn-join').innerText = t.joinGameBtn;
-        document.getElementById('lobby-hint').innerText = t.lobbyHint;
-        document.getElementById('create-title').innerText = t.createTitle;
-        document.getElementById('create-name-label').innerText = t.enterName;
-        document.getElementById('host-name').placeholder = t.namePlaceholder;
-        document.getElementById('btn-do-create').innerText = t.doCreateBtn;
-        document.getElementById('btn-create-back').innerText = t.backBtn;
-        document.getElementById('join-title').innerText = t.joinTitle;
-        document.getElementById('join-name').placeholder = t.namePlaceholder;
-        document.getElementById('join-code').placeholder = t.codePlaceholder;
-        document.getElementById('btn-connect').innerText = t.doConnectBtn;
-        document.getElementById('btn-join-back').innerText = t.backBtn;
-        document.getElementById('lobby-title').innerText = t.lobbyTitle;
-        document.getElementById('btn-leave-room').innerText = t.leaveRoom;
-        document.getElementById('btn-tutorial').innerText = t.tutorial;
-        document.getElementById('char-select-title').innerText = isTutorialSelection ? t.selectPracticeChar : t.selectCharTitle;
-        document.getElementById('btn-start-battle').innerText = isTutorialSelection ? t.startPractice : t.startBattle;
-        document.getElementById('btn-back-menu').innerText = t.back;
-        document.getElementById('turn-hint').innerText = t.turnHint;
-        document.getElementById('card-0').innerText = t.cardNames[0];
-        document.getElementById('card-1').innerText = t.cardNames[1];
-        document.getElementById('card-3').innerText = t.cardNames[3];
-        document.getElementById('defend-card').innerText = t.cardNames[4];
-        document.getElementById('super-card').innerText = t.cardNames[5];
-        if (gameState === 'TUTORIAL_IDLE') { document.getElementById('tutorial-desc').innerText = t.tutDesc; }
-        CARD_NAMES = [...t.moveNames]; 
-        if (players.length > 0) {
-            const p = players[myPlayerIndex];
-            if(p) {
-                const slot2 = document.getElementById('slot-2-btn');
-                if (p.type === 'Loki') {
-                    slot2.innerText = t.cardNames.swap; 
-                    CARD_NAMES[2] = t.swapSkill;
-                } else {
-                    slot2.innerText = t.cardNames[2];
-                    CARD_NAMES[2] = t.counterSkill;
-                }
-                const defBtn = document.getElementById('defend-card');
-                if (p.fatigue >= 100) defBtn.innerText = t.tired; else defBtn.innerText = t.cardNames[4];
-                players.forEach(pl => pl.refreshLabel());
-                document.getElementById('player-name-display').innerText = p.getDisplayName();
-            }
-        }
-    }
-
-    const UI = {
+    window.UI = {
         screens: ['main-menu', 'screen-create', 'screen-join', 'screen-lobby', 'char-select', 'game-ui', 'tutorial-ui'],
         show(id) {
             this.screens.forEach(s => {
@@ -862,12 +593,12 @@
                 const li = document.createElement('li');
                 let html = `<span>${p.name} <small style="color:#aaa">(${p.type})</small></span> <div>`;
                 if (p.isHost) html += `<span class="tag-host">HOST</span> `;
-                if (p.peerId === Online.myPeerId) html += `<span class="tag-me">YOU</span>`;
+                if (p.peerId === window.Online.myPeerId) html += `<span class="tag-me">YOU</span>`;
                 html += `</div>`;
                 li.innerHTML = html;
                 list.appendChild(li);
             });
-            if (Online.isHost) {
+            if (window.Online.isHost) {
                 document.getElementById('host-controls').style.display = 'block';
                 document.getElementById('client-msg').style.display = 'none';
                 document.getElementById('btn-start-net').disabled = false; 
@@ -893,45 +624,58 @@
 
     window.selectMiniChar = function(type) {
         selectedPlayerType = type;
-        SoundEngine.init(); SoundEngine.play('click');
+        SoundEngine.init(); 
+        SoundEngine.play('click');
         const setUI = (prefix) => {
-            document.getElementById(prefix + '-odin').className = type === 'Odin' ? "mini-card active" : "mini-card";
-            document.getElementById(prefix + '-loki').className = type === 'Loki' ? "mini-card active" : "mini-card";
+            const el1 = document.getElementById(prefix + '-odin');
+            const el2 = document.getElementById(prefix + '-loki');
+            if (el1) el1.className = type === 'Odin' ? "mini-card active" : "mini-card";
+            if (el2) el2.className = type === 'Loki' ? "mini-card active" : "mini-card";
         };
-        setUI('mini-host'); setUI('mini-join');
+        setUI('mini-host');
+        setUI('mini-join');
     };
 
-    const Network = {
+    window.Network = {
         createGame() {
             const name = document.getElementById('host-name').value.trim();
             const format = document.getElementById('match-format').value;
-            if(!name) return;
-            Online.isHost = true; Online.myName = name;
-            Online.roomCode = Math.floor(1000 + Math.random() * 9000).toString();
-            Online.matchConfig.targetWins = parseInt(format) || 2;
-            targetWins = Online.matchConfig.targetWins;
-            Online.peer = new Peer(APP_ID_PREFIX + Online.roomCode);
-            Online.peer.on('open', (id) => {
-                Online.myPeerId = id;
-                Online.playerMap = [{ name: Online.myName, isHost: true, peerId: id, isCpu: false, type: selectedPlayerType }];
-                UI.updateLobby(Online.roomCode, Online.playerMap);
+            if(!name) return alert(TRANSLATIONS[currentLang].incomplete);
+            window.Online.isHost = true;
+            window.Online.myName = name;
+            window.Online.roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            window.Online.matchConfig.targetWins = parseInt(format) || 2;
+            targetWins = window.Online.matchConfig.targetWins;
+            
+            window.Online.peer = new Peer(APP_ID_PREFIX + window.Online.roomCode);
+            window.Online.peer.on('open', (id) => {
+                window.Online.myPeerId = id;
+                window.Online.playerMap = [{ name: window.Online.myName, isHost: true, peerId: id, isCpu: false, type: selectedPlayerType }];
+                window.UI.updateLobby(window.Online.roomCode, window.Online.playerMap);
             });
-            Online.peer.on('connection', (conn) => {
-                if(Online.playerMap.length >= 4) { conn.on('open', () => { conn.send({type:'ERROR', msg:'Full'}); setTimeout(()=>conn.close(), 500); }); return; }
-                Online.connections.push(conn);
-                conn.on('data', (data) => Network.handleHostData(conn, data));
+            window.Online.peer.on('error', (err) => { alert(TRANSLATIONS[currentLang].connError); location.reload(); });
+            window.Online.peer.on('connection', (conn) => {
+                if(window.Online.playerMap.length >= 4) {
+                    conn.on('open', () => { conn.send({type:'ERROR', msg:'Full'}); setTimeout(()=>conn.close(), 500); });
+                    return;
+                }
+                window.Online.connections.push(conn);
+                conn.on('data', (data) => window.Network.handleHostData(conn, data));
+                
                 conn.on('close', () => {
-                    const pIdx = Online.playerMap.findIndex(x => x.peerId === conn.peer);
+                    const pIdx = window.Online.playerMap.findIndex(x => x.peerId === conn.peer);
                     if (pIdx !== -1) {
-                        const p = Online.playerMap[pIdx];
+                        const p = window.Online.playerMap[pIdx];
                         if (gameState === 'IDLE') {
-                            Online.playerMap.splice(pIdx, 1);
-                            Online.connections = Online.connections.filter(c => c !== conn);
-                            Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
-                            UI.updateLobby(Online.roomCode, Online.playerMap);
+                            window.Online.playerMap.splice(pIdx, 1);
+                            window.Online.connections = window.Online.connections.filter(c => c !== conn);
+                            window.Network.broadcast({type: 'LOBBY_UPDATE', players: window.Online.playerMap});
+                            window.UI.updateLobby(window.Online.roomCode, window.Online.playerMap);
                         } else {
-                            p.isCpu = true; p.name += " (CPU)";
-                            Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
+                            p.isCpu = true;
+                            p.name += " (CPU)";
+                            window.Network.broadcast({type: 'LOBBY_UPDATE', players: window.Online.playerMap});
+                            log(`${p.name} disconnected, AI takeover`);
                         }
                     }
                 });
@@ -940,81 +684,134 @@
         joinGame() {
             const name = document.getElementById('join-name').value.trim();
             const code = document.getElementById('join-code').value.trim();
-            if(!name || code.length!==4) return;
-            Online.isHost = false; Online.myName = name; Online.roomCode = code;
-            document.getElementById('btn-connect').disabled = true;
-            Online.peer = new Peer();
-            Online.peer.on('open', (id) => {
-                Online.myPeerId = id;
-                const conn = Online.peer.connect(APP_ID_PREFIX + code);
+            if(!name || code.length!==4) return alert(TRANSLATIONS[currentLang].incomplete);
+            
+            window.Online.isHost = false;
+            window.Online.myName = name;
+            window.Online.roomCode = code;
+            const btn = document.getElementById('btn-connect');
+            btn.disabled = true; btn.innerText = "...";
+            
+            window.Online.peer = new Peer();
+            
+            window.Online.peer.on('open', (id) => {
+                window.Online.myPeerId = id;
+                const conn = window.Online.peer.connect(APP_ID_PREFIX + code);
                 conn.on('open', () => {
-                    Online.hostConn = conn;
+                    window.Online.hostConn = conn;
                     conn.send({type: 'JOIN_REQUEST', name: name, characterType: selectedPlayerType});
                 });
-                conn.on('data', (data) => Network.handleClientData(data));
+                conn.on('data', (data) => window.Network.handleClientData(data));
+                conn.on('close', () => { alert(TRANSLATIONS[currentLang].hostLeft); location.reload(); });
+                conn.on('error', (err) => console.log(err));
             });
+            window.Online.peer.on('error', (err) => { alert(TRANSLATIONS[currentLang].connError); location.reload(); });
         },
         handleHostData(conn, data) {
             if(data.type === 'JOIN_REQUEST') {
                 const pType = data.characterType || 'Odin';
                 const newP = { name: data.name, isHost: false, peerId: conn.peer, isCpu: false, type: pType };
-                Online.playerMap.push(newP);
-                Network.broadcast({type: 'LOBBY_UPDATE', players: Online.playerMap});
+                window.Online.playerMap.push(newP);
+                window.Network.broadcast({type: 'LOBBY_UPDATE', players: window.Online.playerMap});
             } else if (data.type === 'ACTION_SUBMIT') {
-                const senderIdx = Online.playerMap.findIndex(p => p.peerId === conn.peer);
-                if(senderIdx !== -1 && players[senderIdx]) players[senderIdx].action = data.action;
+                const senderIdx = window.Online.playerMap.findIndex(p => p.peerId === conn.peer);
+                if(senderIdx !== -1 && players[senderIdx]) {
+                    players[senderIdx].action = data.action;
+                }
             }
         },
         handleClientData(data) {
             if(data.type === 'LOBBY_UPDATE') {
-                Online.playerMap = data.players;
-                UI.updateLobby(Online.roomCode, Online.playerMap);
+                window.Online.playerMap = data.players;
+                window.UI.updateLobby(window.Online.roomCode, window.Online.playerMap);
             } else if (data.type === 'GAME_START') {
-                myPlayerIndex = data.myIndex; isMultiplayer = true;
+                myPlayerIndex = data.myIndex;
+                isMultiplayer = true;
                 if (data.scores) matchScores = data.scores;
                 if (data.targetWins) targetWins = data.targetWins;
-                window.startBattle(data.configs);
+                window.startBattle(data.configs); 
             } else if (data.type === 'TURN_START') {
-                startTurn();
+                startTurn(); 
             } else if (data.type === 'TURN_RESOLVE') {
-                data.actions.forEach((act, idx) => { if(players[idx]) players[idx].action = act; });
+                data.actions.forEach((act, idx) => {
+                    if(players[idx]) players[idx].action = act;
+                });
                 resolveActions();
             } else if (data.type === 'GAME_OVER') {
-                if (data.isFinal) showMsg(data.msg, true);
-                else if (data.autoRestart) {
-                    if (data.scores) { matchScores = data.scores; players.forEach(p => p.refreshLabel()); }
+                if (data.isFinal) {
+                    showMsg(data.msg, true);
+                } else if (data.autoRestart) {
+                    if (data.scores) {
+                        matchScores = data.scores;
+                        players.forEach(p => p.refreshLabel());
+                    }
                     startRoundTransition(data.winnerName);
+                } else {
+                    showMsg(data.msg, false);
                 }
             }
         },
         broadcast(msg) {
-            Online.connections.forEach(c => { if(c.open) c.send(msg); });
-            if(msg.type === 'LOBBY_UPDATE') UI.updateLobby(Online.roomCode, Online.playerMap);
+            window.Online.connections.forEach(c => { if(c.open) c.send(msg); });
+            if(msg.type === 'LOBBY_UPDATE') window.UI.updateLobby(window.Online.roomCode, window.Online.playerMap);
         },
-        sendHost(msg) { if(Online.hostConn && Online.hostConn.open) Online.hostConn.send(msg); },
+        sendHost(msg) {
+            if(window.Online.hostConn && window.Online.hostConn.open) window.Online.hostConn.send(msg);
+        },
         hostStartGame() {
-            while(Online.playerMap.length < 4) {
+            while(window.Online.playerMap.length < 4) {
                 const isLoki = Math.random() > 0.5;
-                Online.playerMap.push({ name: `BOT-${Online.playerMap.length}`, isHost: false, peerId: 'cpu-'+Math.random(), isCpu: true, type: isLoki ? 'Loki' : 'Odin' });
+                window.Online.playerMap.push({ 
+                    name: `BOT-${window.Online.playerMap.length}`, 
+                    isHost: false, 
+                    peerId: 'cpu-'+Math.random(), 
+                    isCpu: true,
+                    type: isLoki ? 'Loki' : 'Odin' 
+                });
             }
+            
             const configs = [
-                { id: 0, x: 0, y: 50, z: 140, name: Online.playerMap[0].name, type: Online.playerMap[0].type }, 
-                { id: 1, x: 0, y: 50, z: -140, name: Online.playerMap[1].name, type: Online.playerMap[1].type },
-                { id: 2, x: 140, y: 50, z: 0, name: Online.playerMap[2].name, type: Online.playerMap[2].type },
-                { id: 3, x: -140, y: 50, z: 0, name: Online.playerMap[3].name, type: Online.playerMap[3].type }
+                { id: 0, x: 0, y: 50, z: 140, name: window.Online.playerMap[0].name, type: window.Online.playerMap[0].type }, 
+                { id: 1, x: 0, y: 50, z: -140, name: window.Online.playerMap[1].name, type: window.Online.playerMap[1].type },
+                { id: 2, x: 140, y: 50, z: 0, name: window.Online.playerMap[2].name, type: window.Online.playerMap[2].type },
+                { id: 3, x: -140, y: 50, z: 0, name: window.Online.playerMap[3].name, type: window.Online.playerMap[3].type }
             ];
+
             if (Object.keys(matchScores).length === 0 || gameState === 'IDLE') {
-                matchScores = {}; configs.forEach(p => matchScores[p.id] = 0);
+                matchScores = {};
+                configs.forEach(p => matchScores[p.id] = 0);
             }
-            Online.playerMap.forEach((p, idx) => {
-                if(p.isHost) { myPlayerIndex = 0; isMultiplayer = true; window.startBattle(configs); } 
-                else if (!p.isCpu) {
-                    const conn = Online.connections.find(c => c.peer === p.peerId);
+
+            window.Online.playerMap.forEach((p, idx) => {
+                if(p.isHost) {
+                    myPlayerIndex = 0;
+                    isMultiplayer = true;
+                    window.startBattle(configs);
+                } else if (!p.isCpu) {
+                    const conn = window.Online.connections.find(c => c.peer === p.peerId);
                     if(conn) conn.send({ type: 'GAME_START', configs: configs, myIndex: idx, scores: matchScores, targetWins: targetWins });
                 }
             });
         }
     };
+
+    // --- 6. CLASS DEFINITIONS ---
+    class HitParticle { constructor(pos, color) { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true }); this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat); this.mesh.position.copy(pos); const a = Math.random() * Math.PI * 2, s = 5 + Math.random() * 5; this.velocity = new THREE.Vector3(Math.cos(a) * s, 4 + Math.random() * 6, Math.sin(a) * s); this.life = 1.0; scene.add(this.mesh); } update(dt) { this.mesh.position.add(this.velocity.clone().multiplyScalar(dt)); this.velocity.y -= 15 * dt; this.life -= dt * 1.5; this.mesh.material.opacity = this.life; if (this.life <= 0) { if(this.mesh.parent) scene.remove(this.mesh); if(this.mesh.material) this.mesh.material.dispose(); return false; } return true; } }
+    class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
+    class SuperAura { constructor(p) { this.active=false; this.g=new THREE.Group(); this.g.position.y=2.5; p.add(this.g); this.core=new THREE.Mesh(new THREE.IcosahedronGeometry(3,1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.3,blending:2})); this.g.add(this.core); this.spikes=new THREE.Mesh(new THREE.IcosahedronGeometry(3.5,0),new THREE.MeshBasicMaterial({color:0xff0000,transparent:true,opacity:0.4,blending:2})); this.g.add(this.spikes); this.g.visible=false; this.t=0; } activate(r) { this.active=true; this.g.visible=true; const c=r?0xff3300:0x0088ff; this.spikes.material.color.setHex(c); this.core.material.color.setHex(r?0xffffaa:0xaaffff); } deactivate() { this.active=false; this.g.visible=false; } update(dt) { if(!this.active)return; this.t+=dt*15; const s=1+Math.sin(this.t)*0.05; this.spikes.scale.set(s,s,s); this.spikes.rotation.y+=dt*3; } }
+    class MeatDrop { constructor(t,s=1, isSuper=false){this.m=createMeatModelShared(s);this.m.position.set(t.x,t.y+400,t.z);this.ty=t.y;this.v=0;this.e=false;this.isSuper=isSuper;scene.add(this.m);} update(dt){if(this.e)return false;this.v+=900*dt;this.m.position.y-=this.v*dt;this.m.rotation.y+=dt*5;if(this.m.position.y<=this.ty){this.m.position.y=this.ty;this.expl();return false;}return true;} expl(){if(this.e)return;this.e=true;const scale=this.isSuper?3.0:1.0;createExplosion(this.m.position,scale);if(this.m.parent)scene.remove(this.m);} }
+    class ParabolicMeatProjectile { constructor(s,e){this.s=s.clone();this.e=e.clone();this.m=createMeatModelShared(7.0);scene.add(this.m);this.p=0;} update(dt){if(this.p>=1){if(this.m.parent)scene.remove(this.m);createExplosion(this.m.position, 3.0); return false;}this.p+=dt/0.8;const c=new THREE.Vector3().lerpVectors(this.s,this.e,this.p);c.y+=Math.sin(this.p*Math.PI)*150;this.m.position.copy(c);this.m.rotation.x+=dt*10;return true;} }
+    
+    // --- 7. HELPER FUNCTIONS FOR 3D (MOVED DOWN) ---
+    function createUnitUISprite() { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 256; const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false })); sprite.scale.set(12, 6, 1); sprite.renderOrder = 999; return { sprite, canvas, ctx, texture }; }
+    function createBrokenShieldTexture() { const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(226, 30); ctx.quadraticCurveTo(226, 150, 128, 240); ctx.quadraticCurveTo(30, 150, 30, 30); ctx.closePath(); ctx.fill(); ctx.font = 'bold 36px "Microsoft JhengHei", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('防禦', 128, 110); ctx.fillText('疲勞中', 128, 150); return new THREE.CanvasTexture(canvas); }
+    function createTextSprite(text) { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 128; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 20, 472, 88); ctx.font = 'bold 50px "Microsoft JhengHei", Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff99cc'; ctx.fillText(text, 256, 85); const texture = new THREE.CanvasTexture(canvas); const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }); return new THREE.Sprite(mat); }
+    function createShockwave(pos, color) { const m = new THREE.Mesh(new THREE.RingGeometry(1, 2, 64), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1, side: THREE.DoubleSide })); m.position.copy(pos); m.rotation.x = Math.PI / 2; const expand = () => { m.scale.x += 4; m.scale.y += 4; m.material.opacity -= 0.05; if(m.material.opacity > 0) requestAnimationFrame(expand); else if(m.parent) scene.remove(m); }; expand(); return m; }
+    function createExplosion(pos, scale=1.0) { const g = new THREE.Group(); const shock = createShockwave(pos, 0xffaa00); g.add(shock); g.position.copy(pos); shock.position.set(0,0,0); const count = Math.floor(40 * scale); for(let i=0; i<count; i++) { activeParticles.push(new HitParticle(pos.clone(), i % 2 === 0 ? 0xff4400 : 0xffff00)); } g.scale.set(scale, scale, scale); SoundEngine.play('super'); scene.add(g); return g; }
+    function applyKnockback(char, sourcePos) { if(!sourcePos) return; const dir = char.group.position.clone().sub(sourcePos).normalize(); dir.y = 0; const originalPos = char.group.position.clone(); const backPos = originalPos.clone().add(dir.multiplyScalar(25)); move(char.group, backPos, 100).then(() => { sleep(50).then(() => move(char.group, originalPos, 200)); }); }
+    function createMagnetModel() { const group = new THREE.Group(); const redMat = new THREE.MeshPhongMaterial({ color: 0xff0000 }), blueMat = new THREE.MeshPhongMaterial({ color: 0x0000ff }), silverMat = new THREE.MeshPhongMaterial({ color: 0xcccccc }); const bar1 = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 2), redMat); bar1.position.set(-3, 3, 0); group.add(bar1); const bar2 = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 2), blueMat); bar2.position.set(3, 3, 0); group.add(bar2); const connector = new THREE.Mesh(new THREE.BoxGeometry(8, 2, 2), silverMat); connector.position.set(0, 0, 0); group.add(connector); group.scale.set(2,2,2); return group; }
+    function createMeatModelShared(scale = 1) { const g = new THREE.Group(); const meat = new THREE.Mesh(new THREE.BoxGeometry(3.5 * scale, 2.5 * scale, 2.5 * scale), new THREE.MeshPhongMaterial({ color: 0xaa2222 })); meat.position.y = 1 * scale; meat.castShadow = true; g.add(meat); const bone = new THREE.Mesh(new THREE.BoxGeometry(6 * scale, 0.6 * scale, 0.6 * scale), new THREE.MeshPhongMaterial({ color: 0xeeeeee })); bone.position.y = 1 * scale; bone.castShadow = true; g.add(bone); const cutMat = new THREE.MeshBasicMaterial({ color: 0xffaaaa }); const cL = new THREE.Mesh(new THREE.PlaneGeometry(2.3 * scale, 2.3 * scale), cutMat), cR = cL.clone(); cL.position.set(-1.76 * scale, 1 * scale, 0); cL.rotation.y = Math.PI/2; cR.position.set(1.76 * scale, 1 * scale, 0); cR.rotation.y = Math.PI/2; g.add(cL, cR); return g; }
+    function getRandomTarget(sid) { const os = players.filter(p => p.id !== sid && p.alive); return os.length ? os[Math.floor(Math.random()*os.length)].id : -1; }
 
     class Odin {
         constructor(cfg) {
@@ -1027,6 +824,7 @@
             this.group.userData = { isCharacter: true, playerId: cfg.id }; this.group.scale.set(8, 8, 8);
             this.aura = new SuperAura(this.group); this.ballRotationMultiplier = 1.0; 
 
+            // FIX: depthWrite: false, colorWrite: false
             const hitGeo = new THREE.BoxGeometry(14, 25, 14); 
             const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }); 
             this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 5; this.group.add(this.hitBox);
@@ -1039,8 +837,9 @@
             this.brokenShieldIcon.renderOrder = 998; this.brokenShieldIcon.visible = false; this.group.add(this.brokenShieldIcon);
 
             this.labelSprite = createTextSprite(this.getDisplayName()); this.labelSprite.position.y = -3.5; this.labelSprite.scale.set(10, 2.5, 1);
-            this.labelSprite.material.depthTest = false; // Always on top
+            this.labelSprite.renderOrder = 999;
             this.group.add(this.labelSprite);
+            
             this.modelContainer = new THREE.Group(); this.group.add(this.modelContainer);
             
             const bodyColor = (this.type === 'Loki' ? 0x0a4a0a : 0xffcc00);
@@ -1054,7 +853,7 @@
             nL.position.set(-0.25, 0.1, 0.35); nR.position.set(0.25, 0.1, 0.35); this.snout.add(nL, nR);
             const earL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.2), new THREE.MeshPhongMaterial({color: 0xffaaaa})), earR = earL.clone();
             earL.position.set(-1.0, 3.2, 0.5); earL.rotation.z = 0.6; earR.position.set(1.0, 3.2, 0.5); earR.rotation.z = -0.6;
-            this.modelContainer.add(earL, earR);
+            earL.castShadow = true; earR.castShadow = true; this.modelContainer.add(earL, earR);
 
             if (this.type === 'Loki') {
                 const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
@@ -1076,6 +875,7 @@
                 this.weaponMesh.position.set(-0.2, -1, 0); this.weaponMesh.castShadow = true; this.weaponGroup.add(this.weaponMesh); 
             }
             this.weaponGroup.position.set(1.5, 1.2, 0.5); this.weaponGroup.rotation.x = -Math.PI/4; this.modelContainer.add(this.weaponGroup);
+            
             this.hexShield = new THREE.Group();
             const hexColor = (this.type === 'Loki' ? 0xff0000 : 0x00ffff);
             const hexStar = new THREE.Mesh(this.createStarGeometry(), new THREE.MeshBasicMaterial({ color: hexColor, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
@@ -1086,20 +886,24 @@
             }
             const centralRune = this.createAlgizRune(); centralRune.scale.set(2, 2, 2); this.hexShield.add(centralRune);
             this.hexShield.position.set(0, 3, 3); this.hexShield.visible = false; this.group.add(this.hexShield);
+            
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
+            
             this.selectionRing = new THREE.Mesh(new THREE.TorusGeometry(5, 0.4, 16, 64), new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.9, depthWrite: false }));
             this.selectionRing.rotation.x = Math.PI/2; this.selectionRing.position.y = -1.5; this.selectionRing.visible = false; this.group.add(this.selectionRing);
+            
             this.targetLabel = createTextSprite(TRANSLATIONS[currentLang].targetLocked); this.targetLabel.scale.set(6, 1.5, 1); this.targetLabel.position.y = -6; this.targetLabel.visible = false; this.group.add(this.targetLabel);
+            
             scene.add(this.group); this.face(new THREE.Vector3(0,cfg.y,0)); this.updateLabel();
         }
+
         getDisplayName() {
              const t = TRANSLATIONS[currentLang];
              if (isTutorialMode) return (this.id === 0) ? t.tutorialName : (this.id === 2 ? t.civilian : t.dummyName);
              let baseName = this.name;
              if (this.name.startsWith("BOT-")) baseName = `CPU${this.id}`;
              const wins = matchScores[this.id] || 0;
-             const crowns = "👑".repeat(wins);
-             return wins > 0 ? `${baseName} ${crowns}` : baseName;
+             return wins > 0 ? `${baseName} ${"👑".repeat(wins)}` : baseName;
         }
         refreshLabel() { if(this.labelSprite) { this.labelSprite.material.map.dispose(); this.labelSprite.material.map = createTextSprite(this.getDisplayName()).material.map; } if(this.brokenShieldIcon) { this.brokenShieldIcon.material.map.dispose(); this.brokenShieldIcon.material.map = createBrokenShieldTexture(); } if(this.targetLabel) { this.targetLabel.material.map.dispose(); this.targetLabel.material.map = createTextSprite(TRANSLATIONS[currentLang].targetLocked).material.map; } }
         createStarGeometry() { const s = new THREE.Shape(); const o=5.5, n=2.8; for(let i=0; i<12; i++){ const a=(i/12)*Math.PI*2, r=(i%2===0)?o:n; if(i===0) s.moveTo(Math.cos(a)*r, Math.sin(a)*r); else s.lineTo(Math.cos(a)*r, Math.sin(a)*r); } s.closePath(); return new THREE.ShapeGeometry(s); }
@@ -1110,6 +914,7 @@
         takeDamage(amt, type = 0, sourcePos = null) { this.hp = Math.max(0, this.hp - Math.floor(amt)); SoundEngine.play('hit'); const pColor = (type === 0) ? 0xffaa00 : (type === 1 ? 0x00ffff : 0xff0044); for(let i=0; i<15; i++) activeParticles.push(new HitParticle(this.group.position.clone().add(new THREE.Vector3(0, 10, 0)), pColor)); if (sourcePos) applyKnockback(this, sourcePos); if (this.hp <= 0 && this.alive) { this.alive = false; this.modelContainer.visible = false; this.meatBlock.visible = true; } this.updateLabel(); updateHPUI(); }
     }
 
+    // --- GAME LOGIC ---
     function calcDamage(a, t, type, isSuper = false, skipFatigue = false) { 
         if (!t || !t.alive) return; 
         const txt = TRANSLATIONS[currentLang]; 
@@ -1143,38 +948,91 @@
         if (!isSuper) gainRage(a, type === 0, 35); 
     }
 
+    async function focusOnAction(char1, char2 = null, dur = 600) { 
+        if (!char1) return; 
+        let tCenter, camTarget; 
+        if (char2) { 
+            const p1 = char1.group.position.clone(), p2 = char2.group.position.clone(); 
+            const d = p1.distanceTo(p2); 
+            tCenter = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5); 
+            const zoomFactor = (window.innerWidth / window.innerHeight) > 1 ? 0.5 : 0.4; 
+            camTarget = tCenter.clone().add(new THREE.Vector3(0, 180 + d * zoomFactor, 250 + d * 0.6)); 
+        } else { 
+            tCenter = char1.group.position.clone(); 
+            camTarget = tCenter.clone().add(new THREE.Vector3(0, 200, 300));
+        } 
+        return new Promise(res => { 
+            let sPos = camera.position.clone(); 
+            let start = performance.now(); 
+            function up() { 
+                let p = Math.min(1, (performance.now() - start) / dur); 
+                camera.position.lerpVectors(sPos, camTarget, p); 
+                camera.lookAt(tCenter); 
+                if (p < 1) requestAnimationFrame(up); else res(); 
+            } 
+            up(); 
+        }); 
+    }
+
+    async function cinematicIntro(attacker, skillName) { const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(attacker.group.quaternion); const focusPos = attacker.group.position.clone().add(forward.multiplyScalar(150)); focusPos.y += 20; await new Promise(res => { let sPos = camera.position.clone(); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 400); camera.position.lerpVectors(sPos, focusPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); showMove(skillName); SoundEngine.play('click'); await sleep(500); return new Promise(res => { let sPos = camera.position.clone(); let zoomOutPos = attacker.group.position.clone().add(new THREE.Vector3(0, 240, 350)); let start = performance.now(); function up() { let p = Math.min(1, (performance.now() - start) / 1000); camera.position.lerpVectors(sPos, zoomOutPos, p); camera.lookAt(attacker.group.position); if (p < 1) requestAnimationFrame(up); else res(); } up(); }); }
+    
+    async function performAttack(attacker, target, type) { 
+        if (!attacker || !target) return; const tp = target.group.position.clone(), orig = attacker.group.position.clone(); 
+        if (type === 0 && target.action.card === 2 && target.type === 'Odin') { const strikePos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, strikePos, 200); SoundEngine.play('magic'); target.group.visible = false; showMove("Spank!"); const behindPos = attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45)); target.group.position.copy(behindPos); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; hideMove(); await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
+        if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); let dmg = (attacker.type === 'Loki') ? (Math.floor(Math.random() * 21) + 35) : (Math.floor(Math.random() * 21) + 30); victim.takeDamage(dmg, 0, attacker.group.position); spawnDamageNumber(victim, dmg); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
+        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { target.ballRotationMultiplier = 15.0; await sleep(1000); const originalBallPos = target.ball.position.clone(); const worldPosAttacker = new THREE.Vector3(); attacker.group.getWorldPosition(worldPosAttacker); worldPosAttacker.y += 30; await new Promise(res => { const start = target.ball.position.clone(), localTarget = target.modelContainer.worldToLocal(worldPosAttacker.clone()), t = performance.now(); function fly() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, localTarget, p); if (p < 1) requestAnimationFrame(fly); else res(); } fly(); }); SoundEngine.play('hit'); createExplosion(attacker.group.position, 2.0); await new Promise(res => { const start = target.ball.position.clone(), t = performance.now(); function back() { let p = Math.min(1, (performance.now() - t) / 300); target.ball.position.lerpVectors(start, originalBallPos, p); if (p < 1) requestAnimationFrame(back); else res(); } back(); }); target.ballRotationMultiplier = 1.0; } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
+    }
+    async function performLightningStorm(p) { SoundEngine.play('super'); const targets = players.filter(o => o && o.id !== p.id && o.alive); if (p.type === 'Loki') { p.takeDamage(p.maxHP * 0.25, 2); for(let i=0; i<3; i++) { targets.forEach(t => activeProjectiles.push(new MeatDrop(t.group.position, 8.75, true))); await sleep(400); } await sleep(600); targets.forEach(t => calcDamage(p, t, 1, true)); } else { const pullBackPos = new THREE.Vector3(0, 450, 650), pullBackCenter = new THREE.Vector3(0, 40, 0), originalCamPos = camera.position.clone(); await new Promise(res => { let s = performance.now(); function up() { let pv = Math.min(1, (performance.now() - s) / 800); camera.position.lerpVectors(originalCamPos, pullBackPos, pv); camera.lookAt(pullBackCenter); if (pv < 1) requestAnimationFrame(up); else res(); } up(); }); await sleep(300); for (let i = 0; i < 8; i++) { targets.forEach(t => { const sY = t.group.position.clone().add(new THREE.Vector3((Math.random()-0.5)*30, 500, (Math.random()-0.5)*30)); activeLightnings.push(new OptimizedLightningBolt(sY, t.group.position)); }); SoundEngine.play('magic'); await sleep(150); } await sleep(400); targets.forEach(t => calcDamage(p, t, 1, true)); await sleep(400); resetCamera(); } }
+    
+    async function performPhysicalSuper(attacker, target) { SoundEngine.play('super'); const op = attacker.group.position.clone(); if (!target) return; const tp = target.group.position.clone(); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 15.0; const vec = tp.clone().sub(op).normalize(); const behindPos = tp.clone().add(vec.clone().multiplyScalar(40)); const hitBackPos = tp.clone().add(vec.clone().multiplyScalar(5)); await move(attacker.group, behindPos, 250); calcDamage(attacker, target, 0, true); createExplosion(tp, 1.5); SoundEngine.play('hit'); await sleep(100); await move(attacker.group, hitBackPos, 200); calcDamage(attacker, target, 0, true, true); SoundEngine.play('hit'); await move(attacker.group, behindPos, 200); await sleep(100); const frontPos = tp.clone().sub(vec.clone().multiplyScalar(40)); await move(attacker.group, frontPos, 250); calcDamage(attacker, target, 0, true); SoundEngine.play('hit'); createExplosion(tp, 1.5); await sleep(100); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, op, 500); } else { for (let i = 0; i < 3; i++) { const strikePos = tp.clone().add(op.clone().sub(tp).normalize().multiplyScalar(40)); await move(attacker.group, strikePos, 150); calcDamage(attacker, target, 0, true, i > 0); await sleep(100); } await move(attacker.group, op, 400); } }
+
     async function resolveActions() { 
         const pMap = { 4: 0, 3: 0, 5: 1, 0: 2, 1: 2, 2: 3 }; 
         const q = players.filter(p => p && p.alive).sort((a, b) => (pMap[a.action.card]??5) - (pMap[b.action.card]??5)); 
         let localDemoId = currentDemoId; 
-        if (!isTutorialMode) { showMove(TRANSLATIONS[currentLang].lockingTargets); await sleep(1200); hideMove(); await sleep(300); }
+        if (!isTutorialMode) {
+            showMove(TRANSLATIONS[currentLang].lockingTargets);
+            await sleep(1200);
+            hideMove();
+            await sleep(300);
+        }
         for (let p of q) { 
-            if (localDemoId !== currentDemoId) return; if (!p || !p.alive) continue; 
+            if (localDemoId !== currentDemoId) return;
+            if (!p || !p.alive) continue; 
             const t = players.find(x => x && x.id === p.action.target);
             const cid = p.action.card; 
-            let skillText = ""; let targetName = t ? t.getDisplayName() : "";
+            let skillText = "";
+            let targetName = t ? t.getDisplayName() : "";
             if (cid === 4) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[4]}!`;
             else if (cid === 3) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[3]}!`;
             else if (cid === 2) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[2]}!`;
             else if (cid === 5) {
                 const isR = (p.id === 0) ? (playerRage.red >= 99) : (p.rage.red >= 99);
                 skillText = isR ? `[${p.getDisplayName()}] ${TRANSLATIONS[currentLang].tutCardNames[5]} @ ${targetName}!` : `[${p.getDisplayName()}] ${TRANSLATIONS[currentLang].tutCardNames[6]}!`;
-            }
-            else if (cid >= 0) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[cid]} @ ${targetName}!`;
-            if (cid === 4 || cid === 2 || cid === 3) { showMove(skillText); SoundEngine.play('click'); await sleep(1000); } 
-            else if (cid >= 0) await cinematicIntro(p, skillText);
+            } else if (cid >= 0) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[cid]} @ ${targetName}!`;
+            
+            if (cid === 4 || cid === 2 || cid === 3) { 
+                showMove(skillText); SoundEngine.play('click'); await sleep(1000); 
+            } else if (cid >= 0) await cinematicIntro(p, skillText);
+
             if (localDemoId !== currentDemoId) return; 
             if (!t || !t.alive) { 
-                if (cid >= 0 && cid !== 4 && cid !== 2 && cid !== 3 && cid !== 5) { showMove("？？？？？"); await sleep(1000); hideMove(); }
+                if (cid >= 0 && cid !== 4 && cid !== 2 && cid !== 3 && cid !== 5) {
+                     showMove("？？？？？"); await sleep(1000); hideMove();
+                }
                 const isMagicUlt = (cid === 5 && !((p.id === 0) ? (playerRage.red >= 99) : (p.rage.red >= 99)));
-                if (cid !== 4 && cid !== 2 && cid !== 3 && !isMagicUlt) { updateHPUI(); await sleep(300); resetCamera(); continue; }
+                if (cid !== 4 && cid !== 2 && cid !== 3 && !isMagicUlt) {
+                    updateHPUI(); await sleep(300); resetCamera(); continue; 
+                }
             } 
             if (cid === 4) { p.fatigue = Math.min(150, p.fatigue + 75); updateHPUI(); } 
+
             if (p.id === t.id) {
                 let nearest = null; let minDst = 99999;
                 players.forEach(o => { if (o.id !== p.id && o.alive) { const d = p.group.position.distanceTo(o.group.position); if (d < minDst) { minDst = d; nearest = o; } } });
                 if (nearest) p.face(nearest.group.position); else p.face(new THREE.Vector3(0, 50, 0));
             } else { if (t && t.alive && cid !== 3) t.face(p.group.position); }
+
             if (cid === 4) { await focusOnAction(p, null, 400); await sleep(400); } 
             else if (cid === 2) { await focusOnAction(p, null, 400); await sleep(400); } 
             else if (cid === 3) { 
@@ -1191,9 +1049,11 @@
                 updateHPUI(); 
             } 
             else if (cid >= 0 && cid < 2) { if (t && t.alive) { await focusOnAction(p, t, 600); p.face(t.group.position); } await performAttack(p, t, cid); } 
+            
             if (localDemoId !== currentDemoId) return; 
             hideMove(); updateHPUI(); await sleep(300); resetCamera(); await sleep(1500); 
         } 
+        
         if (isTutorialMode) { 
             if (localDemoId === currentDemoId) { 
                 gameState = 'TUTORIAL_IDLE'; document.getElementById('tutorial-desc').innerText = TRANSLATIONS[currentLang].tutEnd; 
@@ -1208,7 +1068,7 @@
                 let winner = survivors.length > 0 ? survivors[0] : null; const t = TRANSLATIONS[currentLang];
                 if (winner) { matchScores[winner.id] = (matchScores[winner.id] || 0) + 1; players.forEach(p => p.refreshLabel()); }
                 if (winner && matchScores[winner.id] >= targetWins) {
-                    showMsg(`${t.finalVictory}<br>${winner.getDisplayName()}`, true);
+                    showMsg(t.finalVictory, true);
                     if (isMultiplayer && Online.isHost) Network.broadcast({ type: 'GAME_OVER', msg: t.finalVictory, isFinal: true, winnerName: winner.getDisplayName(), scores: matchScores });
                 } else {
                     const wName = winner ? winner.getDisplayName() : "Draw";
@@ -1236,7 +1096,8 @@
     }
     
     function cpuThink() {
-        if (gameState !== 'WAITING' || timeLeft < (TURN_TIME - 6)) return;
+        if (gameState !== 'WAITING') return;
+        if (timeLeft < (TURN_TIME - 6)) return;
         players.forEach((p, idx) => {
             if (!p.alive) return;
             if ((isMultiplayer && Online.playerMap[idx] && Online.playerMap[idx].isCpu) || (!isMultiplayer && idx !== 0)) {
@@ -1263,10 +1124,14 @@
     function startTurn() {
         if (gameState === 'ENDED') return; if (isMultiplayer && Online.isHost) Network.broadcast({ type: 'TURN_START' });
         gameState = 'WAITING'; timeLeft = TURN_TIME; selectedSlot = -1; selectedTargetId = -1;
-        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected', 'disabled')); hideMove();
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected', 'disabled'));
+        hideMove();
         const tEl = document.getElementById('timer'); if (tEl) { tEl.innerText = timeLeft; tEl.style.display = "block"; }
         document.getElementById('turn-hint').style.display = 'block';
-        players.forEach((p, i) => { p.fatigue = Math.max(0, p.fatigue - 35); p.showBrokenShield = p.fatigue >= 100; p.defendHitCount = 0; p.blockedInTurn = false; p.action = { card: -1, target: -1 }; p.updateLabel(); });
+        players.forEach((p, i) => { 
+            p.fatigue = Math.max(0, p.fatigue - 35); p.showBrokenShield = p.fatigue >= 100; p.defendHitCount = 0; p.blockedInTurn = false; 
+            p.action = { card: -1, target: -1 }; if (p.hexShield) p.hexShield.visible = false; p.updateLabel(); 
+        });
         resetCamera(); updateHPUI(); 
         if (timerInterval) clearInterval(timerInterval); if (cpuThinkTimer) clearInterval(cpuThinkTimer); 
         if (!isMultiplayer || Online.isHost) cpuThinkTimer = setInterval(cpuThink, 800); 
@@ -1283,17 +1148,26 @@
     };
 
     function handleInt(x, y) { 
-        if (gameState !== 'WAITING' || selectedSlot === -1) return; const p = players[myPlayerIndex]; if (!p || !p.alive) return;
+        if (gameState !== 'WAITING') return; 
+        if (selectedSlot === -1) return; 
+        const p = players[myPlayerIndex]; if (!p || !p.alive) return;
         const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera); 
         const chars = players.filter(pl => pl && pl.id !== myPlayerIndex && pl.alive).map(pl => pl.group); const intersects = raycaster.intersectObjects(chars, true); 
         if (intersects.length > 0) { 
             let o = intersects[0].object; while(o && !o.userData.isCharacter) o = o.parent; 
-            if (o && o.userData.playerId !== myPlayerIndex) { 
+            if (o) { 
+                if (o.userData.playerId === myPlayerIndex) return;
                 selectedTargetId = o.userData.playerId; p.action.target = selectedTargetId; p.face(players[selectedTargetId].group.position); 
                 SoundEngine.init(); SoundEngine.play('click'); updateHPUI(); 
                 if (isMultiplayer && !Online.isHost) Network.sendHost({ type: 'ACTION_SUBMIT', action: p.action });
             } 
         } 
+    }
+
+    function startRoundTransition(winnerName) {
+        const timerEl = document.getElementById('timer'); if (timerEl) timerEl.style.display = 'none';
+        const t = TRANSLATIONS[currentLang]; showMove(`${t.roundWinner} ${winnerName}`);
+        setTimeout(() => { showMove(t.nextRoundIn); }, 2000);
     }
 
     window.startBattle = function(customConfigs = null) { document.getElementById('game-msg').style.display = 'none'; hideMove(); UI.show('game-ui'); initBattle(customConfigs); };
@@ -1315,14 +1189,14 @@
     function initWorld() { scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 200, 2500); scene.add(new THREE.AmbientLight(0xffffff, 0.5)); const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(200, 400, 100); sun.castShadow = true; sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048; scene.add(sun); const arena = new THREE.Mesh(new THREE.BoxGeometry(375, 15, 375), new THREE.MeshPhongMaterial({ color: 0x88bb88 })); arena.position.y = -15; arena.receiveShadow = true; scene.add(arena); for(let i=0; i<12; i++) { const h = 700 + Math.random()*400; const m = new THREE.Mesh(new THREE.BoxGeometry(300, h, 300), new THREE.MeshPhongMaterial({ color: 0xcc99aa })); const a = (i/12)*Math.PI*2; m.position.set(Math.cos(a)*1200, h/2 - 1200, Math.sin(a)*1200); scene.add(m); const cap = new THREE.Mesh(new THREE.BoxGeometry(305, 70, 305), new THREE.MeshPhongMaterial({ color: 0xffffff })); cap.position.set(m.position.x, m.position.y + h/2, m.position.z); scene.add(cap); } }
     
     function initBattle(customConfigs) { 
-        const v = document.getElementById('viewport'); const oldCanvas = v.querySelector('canvas'); if (oldCanvas) v.removeChild(oldCanvas); 
-        scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000); // FIXED: 45 -> 55 FOV
+        const v = document.getElementById('viewport'); const oldCanvas = v.querySelector('canvas'); if (oldCanvas) { v.removeChild(oldCanvas); } 
+        scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000); 
         renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setPixelRatio(window.devicePixelRatio); v.appendChild(renderer.domElement); 
         raycaster = new THREE.Raycaster(); clock = new THREE.Clock(); initWorld(); spawnPlayers(customConfigs); adjustCameraForResponsive(true); animate(); 
         window.addEventListener('resize', () => { if(camera && renderer) { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); adjustCameraForResponsive(); } }); 
         window.addEventListener('mousedown', (e) => { SoundEngine.init(); handleInt(e.clientX, e.clientY); }); 
         window.addEventListener('touchstart', (e) => { SoundEngine.init(); if(e.touches[0]) handleInt(e.touches[0].clientX, e.touches[0].clientY); }); 
-        if (isTutorialMode) { gameState = 'TUTORIAL_IDLE'; UI.show('tutorial-ui'); } 
+        if (isTutorialSelection) { gameState = 'TUTORIAL_IDLE'; UI.show('tutorial-ui'); } 
         else { if (!isMultiplayer || Online.isHost) startTurn(); else document.getElementById('turn-hint').innerText = TRANSLATIONS[currentLang].waitingOthers; } 
     }
     
@@ -1335,10 +1209,7 @@
     }
 
     window.startTutorialSelection = function() { SoundEngine.init(); isTutorialSelection = true; UI.show('char-select'); updateText(); };
-    window.pickChar = function(t) { selectedPlayerType = t; document.getElementById('select-odin').className = (t === 'Odin' ? 'char-card active' : 'char-card'); document.getElementById('select-loki').className = (t === 'Loki' ? 'char-card active' : 'char-card'); SoundEngine.play('click'); };
-    window.confirmSelection = function() { if (isTutorialSelection) window.startTutorial(); else window.startBattle(); };
-    window.startTutorial = function() { SoundEngine.init(); isTutorialMode = true; initBattle(); };
-    window.quitTutorial = function() { SoundEngine.play('click'); isTutorialMode = false; window.resetGame(); };
+    window.quitTutorial = function() { SoundEngine.play('click'); isTutorialSelection = false; window.resetGame(); };
     window.demoAction = async function(cardIndex) { 
         if (gameState === 'ANIMATING') return; if (!players || players.length < 2) return; 
         SoundEngine.init(); gameState = 'ANIMATING'; currentDemoId++; 
@@ -1353,7 +1224,7 @@
         const t = TRANSLATIONS[currentLang]; 
         switch(cardIndex) { case 0: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut0_loki:t.tut0_odin); p1.action.card = -1; break; case 1: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut1_loki:t.tut1_odin); p1.action.card = -1; break; case 2: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut2_loki:t.tut2_odin); p1.action.card = 0; break; case 3: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut3_loki:t.tut3_odin); p1.action.card = 1; break; case 4: document.getElementById('tutorial-desc').innerText = t.tut4; p1.action.card = 0; break; case 5: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut5_loki:t.tut5_odin); p1.action.card = -1; break; case 6: document.getElementById('tutorial-desc').innerText = (p0.type==='Loki'?t.tut6_loki:t.tut6_odin); p1.action.card = -1; break; } 
         await resolveActions(); 
-        if(isTutorialMode && currentDemoId === currentDemoId) { 
+        if(currentDemoId === currentDemoId) { 
             gameState = 'TUTORIAL_IDLE'; document.getElementById('tutorial-desc').innerText = t.tutEnd; 
             players.forEach(p => { p.hp = p.maxHP; p.fatigue = 0; p.showBrokenShield = false; p.updateLabel(); }); 
             cards.forEach(c => { c.classList.remove('disabled-tut', 'demoing'); c.innerText = c.getAttribute('data-original-text') || c.innerText; });
@@ -1366,6 +1237,9 @@
         document.getElementById('game-msg').style.display = 'none'; document.getElementById('turn-hint').style.display = 'none'; 
         currentDemoId++; players.length = 0; playerRage = { red: 0, blue: 0 }; gameState = 'IDLE'; matchScores = {}; 
         document.getElementById('scoreboard').style.display = 'none'; UI.showMenu();
+        hideCardDescription();
+        
+        // Clean Network
         if(Online.peer) Online.peer.destroy(); Online.peer = null; Online.playerMap = []; Online.connections = []; Online.hostConn = null;
     };
     
@@ -1381,12 +1255,6 @@
         let btnHtml = `<button class="btn-gold" style="margin-top:10px;" onclick="${btnAction}">${btnText}</button>`;
         if (isMultiplayer && !Online.isHost && !isFinal) btnHtml = `<div style="font-size:0.9rem; color:#aaa; margin-top:10px;">${TRANSLATIONS[currentLang].waitingHost}</div>`;
         el.innerHTML = `<span>${t}</span><br>${btnHtml}`; el.style.display = 'flex'; 
-    }
-
-    function startRoundTransition(winnerName) {
-        const timerEl = document.getElementById('timer'); if (timerEl) timerEl.style.display = 'none';
-        const t = TRANSLATIONS[currentLang]; showMove(`${t.roundWinner} ${winnerName}`);
-        setTimeout(() => { showMove(t.nextRoundIn); }, 2000);
     }
 
     window.restartRound = function() {
