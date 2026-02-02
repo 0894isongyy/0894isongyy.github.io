@@ -37,6 +37,15 @@
             z-index: 2000; transition: opacity 0.5s ease; padding: 20px; box-sizing: border-box;
             opacity: 0; pointer-events: none;
         }
+
+        /* Mobile Scroll Fix */
+        .overlay-screen.scrollable {
+            justify-content: flex-start;
+            overflow-y: auto;
+            padding-top: 60px;
+            padding-bottom: 40px;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
         
         .overlay-screen.active {
             opacity: 1; pointer-events: auto;
@@ -93,11 +102,11 @@
             opacity: 0.7;
         }
 
-        h2 { font-size: 1.4rem; color: #fff; margin-bottom: 20px; border-bottom: 2px solid var(--primary-gold); padding-bottom: 8px; }
+        h2 { font-size: 1.4rem; color: #fff; margin-bottom: 15px; border-bottom: 2px solid var(--primary-gold); padding-bottom: 5px; margin-top: 0; }
 
         input.input-box, select.input-box {
             background: rgba(255, 255, 255, 0.1); border: 2px solid var(--primary-gold);
-            color: white; padding: 12px; font-size: 1.2rem; margin: 10px 0;
+            color: white; padding: 10px; font-size: 1.1rem; margin: 5px 0;
             border-radius: 8px; text-align: center; width: 80%; max-width: 300px;
             font-family: inherit; outline: none;
         }
@@ -143,7 +152,7 @@
         }
 
         .mini-char-select {
-            display: flex; gap: 10px; margin: 15px 0; width: 80%; max-width: 300px;
+            display: flex; gap: 10px; margin: 10px 0; width: 80%; max-width: 300px;
         }
         .mini-card {
             flex: 1; padding: 10px; border: 1px solid #888; border-radius: 8px;
@@ -171,13 +180,13 @@
             padding: 12px 30px; font-size: 1.1rem; background: rgba(255, 153, 204, 0.2);
             border: 2px solid var(--primary-gold); color: var(--primary-gold); cursor: pointer; border-radius: 50px;
             transition: all 0.3s; font-family: 'Cinzel', serif; text-transform: uppercase;
-            max-width: 300px; width: 100%; margin-bottom: 15px;
+            max-width: 300px; width: 100%; margin-bottom: 10px;
             z-index: 5;
         }
         .btn-gold:hover { background: var(--primary-gold); color: #1a0d0d; transform: scale(1.05); }
         .btn-gold:disabled { border-color: #555; color: #888; background: transparent; cursor: not-allowed; transform: none; }
 
-        .btn-back { border-color: #aaa; color: #ccc; font-size: 0.9rem; padding: 8px 20px; margin-top: 10px; width: auto; }
+        .btn-back { border-color: #aaa; color: #ccc; font-size: 0.9rem; padding: 8px 20px; margin-top: 5px; width: auto; }
 
         .lang-container {
             display: flex; gap: 15px; margin-bottom: 30px;
@@ -391,19 +400,20 @@
         <div class="studio-footer">JASDEV STUDIO 2025</div>
     </div>
 
-    <div id="screen-create" class="overlay-screen">
+    <!-- Scrollable container logic added here -->
+    <div id="screen-create" class="overlay-screen scrollable">
         <h2 id="create-title">創建遊戲房間</h2>
         <p id="create-name-label">請輸入你的暱稱</p>
         <input type="text" id="host-name" class="input-box" placeholder="名稱 (16字內)" maxlength="16">
         <div id="host-presets" class="preset-container"></div> <!-- Added Preset Container -->
         
-        <p style="margin-top:10px; font-size:0.9rem; color:#aaa;">賽制 (Match Format)</p>
+        <p style="margin-top:5px; font-size:0.9rem; color:#aaa;">賽制 (Match Format)</p>
         <select id="match-format" class="input-box" style="width:80%; max-width:300px;">
             <option value="2">3 局 2 勝 (Best of 3)</option>
             <option value="3">5 局 3 勝 (Best of 5)</option>
             <option value="5">7 局 5 勝 (Best of 7)</option>
         </select>
-        <p id="create-char-label" style="margin-top:20px; font-size:0.9rem; color:#aaa;">選擇你的角色</p>
+        <p id="create-char-label" style="margin-top:10px; font-size:0.9rem; color:#aaa;">選擇你的角色</p>
         <div class="mini-char-select">
             <div id="mini-host-odin" class="mini-card active" onclick="window.selectMiniChar('Odin')">
                 <div class="mini-icon">⚡</div>
@@ -418,13 +428,13 @@
         <button id="btn-create-back" class="btn-gold btn-back" onclick="window.UI.showMenu()">返回</button>
     </div>
 
-    <div id="screen-join" class="overlay-screen">
+    <div id="screen-join" class="overlay-screen scrollable">
         <h2 id="join-title">加入網絡對戰</h2>
         <input type="text" id="join-name" class="input-box" placeholder="你的暱稱 (16字內)" maxlength="16">
         <div id="join-presets" class="preset-container"></div> <!-- Added Preset Container -->
 
         <input type="number" id="join-code" class="input-box" placeholder="4位數房號" maxlength="4">
-        <p id="join-char-label" style="margin-top:20px; font-size:0.9rem; color:#aaa;">選擇你的角色</p>
+        <p id="join-char-label" style="margin-top:10px; font-size:0.9rem; color:#aaa;">選擇你的角色</p>
         <div class="mini-char-select">
             <div id="mini-join-odin" class="mini-card active" onclick="window.selectMiniChar('Odin')">
                 <div class="mini-icon">⚡</div>
@@ -440,7 +450,7 @@
         <button id="btn-join-back" class="btn-gold btn-back" onclick="window.UI.showMenu()">返回</button>
     </div>
 
-    <div id="screen-lobby" class="overlay-screen">
+    <div id="screen-lobby" class="overlay-screen scrollable">
         <h2 id="lobby-title">準備大廳</h2>
         <div class="room-code-display" id="lobby-code">----</div>
         <p id="lobby-share-hint">請將房號分享給朋友 (最多4人)</p>
@@ -667,14 +677,8 @@
         safeSetText('btn-leave-room', t.leaveRoom);
         safeSetText('client-msg', t.waitingHost);
         
-        safeSetText('char-select-title', t.selectCharTitle);
-        safeSetText('char-name-odin', t.odinName);
-        safeSetText('char-desc-odin', t.odinDesc);
-        safeSetText('char-name-loki', t.lokiName);
-        safeSetText('char-desc-loki', t.lokiDesc);
-        safeSetText('btn-start-battle', t.startBattle);
-        safeSetText('btn-back-menu', t.back);
-        
+        // Removed char-select-title etc updates since elements are removed
+
         safeSetText('turn-hint', t.turnHint);
         safeSetText('card-0', t.cardNames[0]);
         safeSetText('card-1', t.cardNames[1]);
@@ -1139,9 +1143,9 @@
             this.aura = new SuperAura(this.group); this.ballRotationMultiplier = 1.0; 
 
             // FIX: depthWrite: false, colorWrite: false
-            const hitGeo = new THREE.BoxGeometry(14, 35, 12); 
+            const hitGeo = new THREE.BoxGeometry(30, 50, 30); 
             const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }); 
-            this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 10; this.group.add(this.hitBox);
+            this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 15; this.group.add(this.hitBox);
             
             const uiData = createUnitUISprite(); this.uiSprite = uiData.sprite; this.uiCtx = uiData.ctx; this.uiTexture = uiData.texture;
             this.uiSprite.position.y = 8.5; this.group.add(this.uiSprite);
@@ -1765,8 +1769,8 @@
         // 2D Reticle Animation
         if (p.id === selectedTargetId && p.id !== myPlayerIndex && p.selectionSprite && players[selectedTargetId].alive) { 
             p.selectionSprite.visible = true; 
-            // Scale reduced (Base 5, Var 1.0)
-            const scaleBase = 5; const scaleVar = Math.sin(Date.now() * 0.005) * 1.0;
+            // Scale reduced 30% (Base 5 -> 3.5, Var 1.0 -> 0.7)
+            const scaleBase = 3.5; const scaleVar = Math.sin(Date.now() * 0.005) * 0.7;
             p.selectionSprite.scale.set(scaleBase + scaleVar, scaleBase + scaleVar, 1);
             p.selectionSprite.material.rotation += 0.02;
         } else if (p.selectionSprite) { 
