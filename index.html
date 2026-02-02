@@ -515,7 +515,7 @@
 
 <script>
     // --- 1. GLOBAL VARIABLES & CONSTANTS ---
-    const APP_ID_PREFIX = "pig-ragnarok-v1-"; 
+    const APP_ID_PREFIX = "pig-arena-23-"; 
     const apiKey = ""; 
     const MAX_HP_ODIN = 500; 
     const MAX_HP_LOKI = 400;
@@ -572,6 +572,7 @@
             targetLocked: "(目標鎖定中)", dead: "芭比Q啦", fatigue: "疲勞", rage: "怒氣",
             defendFatigue: "防禦疲勞中", defend: "防禦", tired: "力盡🧱",
             cleanup: "等待戰場清理中...",
+            incomplete: "名稱或房號不完整", connError: "連線錯誤，請重試", hostLeft: "房主已離開", full: "房間已滿", connecting: "連線中...",
             cardDescs: {
                 0: "造成物理傷害，增加紅色怒氣",
                 1: "造成魔法傷害，增加藍色怒氣",
@@ -613,6 +614,7 @@
             targetLocked: "(Target Locked)", dead: "Barbecued", fatigue: "Fatigue", rage: "Rage",
             defendFatigue: "Can't Block!", defend: "Defend", tired: "Tired🧱",
             cleanup: "Waiting for battlefield cleanup...",
+            incomplete: "Name or Code incomplete", connError: "Connection Error", hostLeft: "Host disconnected", full: "Room Full", connecting: "Connecting...",
             cardDescs: {
                 0: "Deals Physical DMG, builds Red Rage",
                 1: "Deals Magic DMG, builds Blue Rage",
@@ -1017,7 +1019,17 @@
             window.Online.myName = name;
             window.Online.roomCode = code;
             const btn = document.getElementById('btn-connect');
-            btn.disabled = true; btn.innerText = "...";
+            btn.disabled = true; btn.innerText = "連線中..."; // Add translation for connecting
+            
+            // Timeout safety
+            const timeOut = setTimeout(() => {
+                if(btn.disabled) {
+                    btn.disabled = false;
+                    btn.innerText = TRANSLATIONS[currentLang].doConnectBtn;
+                    alert("連線逾時 (Connection Timeout)");
+                }
+            }, 10000);
+
             SoundEngine.playBGM(); // Client plays BGM on connect
             
             window.Online.peer = new Peer();
@@ -1026,6 +1038,7 @@
                 window.Online.myPeerId = id;
                 const conn = window.Online.peer.connect(APP_ID_PREFIX + code);
                 conn.on('open', () => {
+                    clearTimeout(timeOut);
                     window.Online.hostConn = conn;
                     conn.send({type: 'JOIN_REQUEST', name: name, characterType: selectedPlayerType});
                 });
@@ -1077,6 +1090,12 @@
                 } else {
                     showMsg(data.msg, false);
                 }
+            } else if (data.type === 'SHOW_CLEANUP') {
+                const cleanupMsg = document.getElementById('cleanup-msg');
+                if(cleanupMsg) cleanupMsg.classList.add('active');
+            } else if (data.type === 'HIDE_CLEANUP') {
+                const cleanupMsg = document.getElementById('cleanup-msg');
+                if(cleanupMsg) cleanupMsg.classList.remove('active');
             }
         },
         broadcast(msg) {
@@ -1255,8 +1274,8 @@
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
             
             this.selectionSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: createReticleTexture(), transparent: true, depthTest: false, depthWrite: false }));
-            this.selectionSprite.scale.set(10, 10, 1); 
-            this.selectionSprite.position.set(0, 3.0, 0); // Head height
+            this.selectionSprite.scale.set(5, 5, 1); 
+            this.selectionSprite.position.set(0, 3.5, 0); // Head height
             this.selectionSprite.visible = false;
             this.group.add(this.selectionSprite);
             
