@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.0)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.1)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -402,7 +402,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.0</div>
+        <div class="version-text">版本 23.1</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -611,7 +611,7 @@
             victory: "VICTORY!", gameOver: "GAME OVER", restart: "Play Again", finalVictory: "Congratulations {name}, the New King of Piglympus!", finalMenu: "Main Menu",
             swapSkill: "Magnet Swap", counterSkill: "Counter",
             targetLocked: "(Target Locked)", dead: "Barbecued", fatigue: "Fatigue", rage: "Rage",
-            defendFatigue: "Fatigued", defend: "Defend", tired: "Tired🧱",
+            defendFatigue: "Can't Block!", defend: "Defend", tired: "Tired🧱",
             cleanup: "Waiting for battlefield cleanup...",
             cardDescs: {
                 0: "Deals Physical DMG, builds Red Rage",
@@ -1125,7 +1125,7 @@
 
     // --- 6. CLASS DEFINITIONS ---
     class HitParticle { constructor(pos, color) { const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true }); this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat); this.mesh.position.copy(pos); const a = Math.random() * Math.PI * 2, s = 5 + Math.random() * 5; this.velocity = new THREE.Vector3(Math.cos(a) * s, 4 + Math.random() * 6, Math.sin(a) * s); this.life = 1.0; scene.add(this.mesh); } update(dt) { this.mesh.position.add(this.velocity.clone().multiplyScalar(dt)); this.velocity.y -= 15 * dt; this.life -= dt * 1.5; this.mesh.material.opacity = this.life; if (this.life <= 0) { if(this.mesh.parent) scene.remove(this.mesh); if(this.mesh.material) this.mesh.material.dispose(); return false; } return true; } }
-    class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
+    class OptimizedLightningBolt { constructor(s, e, c=0x00ffff) { this.s=s.clone(); this.e=e.clone(); this.c=c; this.l=6; this.g=new THREE.Group(); scene.add(this.g); this.m=new THREE.MeshBasicMaterial({color:c,transparent:true}); this.gen(); } gen() { while(this.g.children.length>0){this.g.remove(this.g.children[0]);} const pts=[]; for(let i=0;i<=8;i++){ let p=new THREE.Vector3().lerpVectors(this.s,this.e,i/8); if(i>0&&i<8){ p.addScalar((Math.random()-0.5)*20); } pts.push(p); } for(let i=0;i<pts.length-1;i++){ const d=pts[i].distanceTo(pts[i+1]); const m=new THREE.Mesh(new THREE.BoxGeometry(3.6,3.6,d),this.m); m.position.lerpVectors(pts[i],pts[i+1],0.5); m.lookAt(pts[i+1]); this.g.add(m); } this.m.color.setHex(Math.random()>0.4?0xffffff:this.c); } update() { this.l--; if(this.l>0){this.gen();return true;} else{scene.remove(this.g); return false;} } }
     class SuperAura { constructor(p) { this.active=false; this.g=new THREE.Group(); this.g.position.y=2.5; p.add(this.g); this.core=new THREE.Mesh(new THREE.IcosahedronGeometry(3,1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.3,blending:2})); this.g.add(this.core); this.spikes=new THREE.Mesh(new THREE.IcosahedronGeometry(3.5,0),new THREE.MeshBasicMaterial({color:0xff0000,transparent:true,opacity:0.4,blending:2})); this.g.add(this.spikes); this.g.visible=false; this.t=0; } activate(r) { this.active=true; this.g.visible=true; const c=r?0xff3300:0x0088ff; this.spikes.material.color.setHex(c); this.core.material.color.setHex(r?0xffffaa:0xaaffff); } deactivate() { this.active=false; this.g.visible=false; } update(dt) { if(!this.active)return; this.t+=dt*15; const s=1+Math.sin(this.t)*0.05; this.spikes.scale.set(s,s,s); this.spikes.rotation.y+=dt*3; } }
     class MeatDrop { constructor(t,s=1, isSuper=false){this.m=createMeatModelShared(s);this.m.position.set(t.x,t.y+400,t.z);this.ty=t.y;this.v=0;this.e=false;this.isSuper=isSuper;scene.add(this.m);} update(dt){if(this.e)return false;this.v+=900*dt;this.m.position.y-=this.v*dt;this.m.rotation.y+=dt*5;if(this.m.position.y<=this.ty){this.m.position.y=this.ty;this.expl();return false;}return true;} expl(){if(this.e)return;this.e=true;const scale=this.isSuper?3.0:1.0;createExplosion(this.m.position,scale);if(this.m.parent)scene.remove(this.m);} }
     class ParabolicMeatProjectile { constructor(s,e){this.s=s.clone();this.e=e.clone();this.m=createMeatModelShared(7.0);scene.add(this.m);this.p=0;} update(dt){if(this.p>=1){if(this.m.parent)scene.remove(this.m);createExplosion(this.m.position, 3.0); return false;}this.p+=dt/0.8;const c=new THREE.Vector3().lerpVectors(this.s,this.e,this.p);c.y+=Math.sin(this.p*Math.PI)*150;this.m.position.copy(c);this.m.rotation.x+=dt*10;return true;} }
@@ -1135,7 +1135,21 @@
 
     // --- 8. HELPER FUNCTIONS FOR 3D (MOVED DOWN) ---
     function createUnitUISprite() { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 256; const texture = new THREE.CanvasTexture(canvas); const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false })); sprite.scale.set(12, 6, 1); sprite.renderOrder = 999; return { sprite, canvas, ctx, texture }; }
-    function createBrokenShieldTexture() { const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d'); ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(226, 30); ctx.quadraticCurveTo(226, 150, 128, 240); ctx.quadraticCurveTo(30, 150, 30, 30); ctx.closePath(); ctx.fill(); ctx.font = 'bold 36px "Microsoft JhengHei", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('防禦', 128, 110); ctx.fillText('疲勞中', 128, 150); return new THREE.CanvasTexture(canvas); }
+    function createBrokenShieldTexture() { 
+        const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; 
+        const ctx = canvas.getContext('2d'); ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(226, 30); ctx.quadraticCurveTo(226, 150, 128, 240); ctx.quadraticCurveTo(30, 150, 30, 30); ctx.closePath(); ctx.fill(); 
+        
+        ctx.font = 'bold 36px "Microsoft JhengHei", sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; 
+        
+        // Dynamic Text based on language
+        if (currentLang === 'zh-TW') {
+            ctx.fillText('防禦', 128, 110); ctx.fillText('疲勞中', 128, 150); 
+        } else {
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText('Can\'t', 128, 110); ctx.fillText('Block!', 128, 150); 
+        }
+        return new THREE.CanvasTexture(canvas); 
+    }
     function createTextSprite(text) { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 512; canvas.height = 128; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 20, 472, 88); ctx.font = 'bold 50px "Microsoft JhengHei", Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#ff99cc'; ctx.fillText(text, 256, 85); const texture = new THREE.CanvasTexture(canvas); const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }); return new THREE.Sprite(mat); }
     function createShockwave(pos, color) { const m = new THREE.Mesh(new THREE.RingGeometry(1, 2, 64), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1, side: THREE.DoubleSide })); m.position.copy(pos); m.rotation.x = Math.PI / 2; const expand = () => { m.scale.x += 4; m.scale.y += 4; m.material.opacity -= 0.05; if(m.material.opacity > 0) requestAnimationFrame(expand); else if(m.parent) scene.remove(m); }; expand(); return m; }
     function createExplosion(pos, scale=1.0) { const g = new THREE.Group(); const shock = createShockwave(pos, 0xffaa00); g.add(shock); g.position.copy(pos); shock.position.set(0,0,0); const count = Math.floor(40 * scale); for(let i=0; i<count; i++) { activeParticles.push(new HitParticle(pos.clone(), i % 2 === 0 ? 0xff4400 : 0xffff00)); } g.scale.set(scale, scale, scale); SoundEngine.play('super'); scene.add(g); return g; }
@@ -1168,6 +1182,7 @@
             
             const uiData = createUnitUISprite(); this.uiSprite = uiData.sprite; this.uiCtx = uiData.ctx; this.uiTexture = uiData.texture;
             this.uiSprite.position.y = 8.5; 
+            this.group.add(this.uiSprite); // Always add, visibility controlled in updateLabel
             
             // --- NEW: UI SPECIFIC HITBOX ---
             const uiHitGeo = new THREE.BoxGeometry(18, 30, 18); // Size matches UI sprite area
@@ -1178,9 +1193,6 @@
                  this.group.add(uiHitBox);
             }
             
-            // ALWAYS ADD uiSprite, but updateLabel will hide text for self
-            this.group.add(this.uiSprite);
-
             const shieldTex = createBrokenShieldTexture(); const shieldMat = new THREE.SpriteMaterial({ map: shieldTex, transparent: true, opacity: 0.5, depthTest: false, depthWrite: false });
             this.brokenShieldIcon = new THREE.Sprite(shieldMat); this.brokenShieldIcon.scale.set(8, 8, 1); this.brokenShieldIcon.position.set(0, 14, 0); 
             this.brokenShieldIcon.renderOrder = 998; this.brokenShieldIcon.visible = false; 
@@ -1243,8 +1255,8 @@
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
             
             this.selectionSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: createReticleTexture(), transparent: true, depthTest: false, depthWrite: false }));
-            this.selectionSprite.scale.set(5, 5, 1); 
-            this.selectionSprite.position.set(0, 3.5, 0); // Head height
+            this.selectionSprite.scale.set(10, 10, 1); 
+            this.selectionSprite.position.set(0, 3.0, 0); // Head height
             this.selectionSprite.visible = false;
             this.group.add(this.selectionSprite);
             
@@ -1370,7 +1382,19 @@
                 if (t.defendHitCount === 2) fatigueAdd = 20; else if (t.defendHitCount > 2) fatigueAdd = 10; 
                 if (isSuper) fatigueAdd += 15; if (fatigueAdd > 0) t.fatigue = Math.min(150, t.fatigue + fatigueAdd); 
             } 
-            t.blockedInTurn = true; SoundEngine.play('ding'); spawnDamageNumber(t, txt.logBlock); 
+            // 修正格擋顯示邏輯：先跳黃字，再跳紅字傷害
+            t.blockedInTurn = true; 
+            SoundEngine.play('ding'); 
+            spawnDamageNumber(t, txt.logBlock, "#ffff00"); // Yellow BLOCK text
+            
+            // 傷害減免計算 (75% reduction -> take 25% dmg)
+            let reducedDmg = Math.floor(dmg * 0.25);
+            // Apply reduced damage
+            loseRage(t, type === 0); 
+            t.takeDamage(reducedDmg, type, a.group.position);
+            // Show red damage number slightly delayed or offset
+            setTimeout(() => spawnDamageNumber(t, reducedDmg), 200);
+
             showMove(`[${t.getDisplayName()}] ${txt.logBlock}!`); updateHPUI(); return; 
         } 
         loseRage(t, type === 0); t.takeDamage(dmg, type, a.group.position); spawnDamageNumber(t, dmg);
@@ -1413,7 +1437,21 @@
         if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); 
         let dmg = (attacker.type === 'Loki') ? 60 : 80; // FIX: Base on attacker
         victim.takeDamage(dmg, 0, attacker.group.position); spawnDamageNumber(victim, dmg); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
-        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { if (attacker.type === 'Loki') { const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); } else { const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); const burst = setInterval(() => { activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)))); SoundEngine.play('magic'); }, 150); await sleep(800); clearInterval(burst); } if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { 
+        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { 
+            if (attacker.type === 'Loki') { 
+                const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); 
+            } else { 
+                // ODIN MAGIC: 8 BOLTS
+                const mouthPos = attacker.group.position.clone().add(new THREE.Vector3(0, 25, 0)); 
+                for(let k=0; k<8; k++) {
+                     // Add some randomness to target pos
+                     const jitter = new THREE.Vector3((Math.random()-0.5)*15, (Math.random()-0.5)*15, (Math.random()-0.5)*15);
+                     activeLightnings.push(new OptimizedLightningBolt(mouthPos, target.group.position.clone().add(new THREE.Vector3(0,25,0)).add(jitter))); 
+                }
+                SoundEngine.play('magic'); 
+                await sleep(800); 
+            } 
+            if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { 
             // --- UPDATED LOKI MAGIC REFLECT ANIMATION ---
             target.ballRotationMultiplier = 15.0; 
             target.aura.activate(false); // Blue Aura for magic reflect
