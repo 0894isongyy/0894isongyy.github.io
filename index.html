@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.19)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.20)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -490,7 +490,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.19</div>
+        <div class="version-text">版本 23.20</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -840,7 +840,7 @@
                 if (defBtn) {
                     if (p.fatigue >= 100) defBtn.innerText = t.tired; else defBtn.innerText = t.cardNames[4];
                 }
-                players.forEach(p => p.refreshLabel());
+                players.forEach(pl => pl.refreshLabel());
                 safeSetText('player-name-display', p.getDisplayName());
             }
         }
@@ -863,7 +863,6 @@
         const btn = document.getElementById('btn-music');
         if (btn) {
             btn.classList.toggle('off', !on);
-            btn.classList.toggle('active', on);
         }
         SoundEngine.init();
     };
@@ -873,7 +872,6 @@
         const btn = document.getElementById('btn-sfx');
         if (btn) {
             btn.classList.toggle('off', !on);
-            btn.classList.toggle('active', on);
             btn.innerText = on ? '🔊' : '🔇';
         }
         SoundEngine.init();
@@ -906,7 +904,7 @@
 
     const SoundEngine = { ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); }, 
         isMusicEnabled: true, isSFXEnabled: true,
-        musicVolume: 0.6, sfxVolume: 1.0,
+        musicVolume: 0.4, sfxVolume: 0.8,
         BASE_BGM_VOL: 0.05, // Lowered base volume for music
         
         setMusicVolume(v) { this.musicVolume = v; },
@@ -1049,10 +1047,10 @@
             }
         }
         
-        players.forEach(p => { 
-            if (p.selectionRing) p.selectionRing.visible = (selectedTargetId === p.id); 
-            if (p.updateLabel) p.updateLabel(); 
-            if (p.brokenShieldIcon) { p.brokenShieldIcon.visible = p.showBrokenShield; }
+        players.forEach(pl => { 
+            if (pl.selectionRing) pl.selectionRing.visible = (selectedTargetId === pl.id); 
+            if (pl.updateLabel) pl.updateLabel(); 
+            if (pl.brokenShieldIcon) { pl.brokenShieldIcon.visible = pl.showBrokenShield; }
         });
         if (window.UI) window.UI.updateScoreboard(); 
     }
@@ -2215,8 +2213,8 @@
         // 2D Reticle Animation
         if (p.id === selectedTargetId && p.id !== myPlayerIndex && p.selectionSprite && players[selectedTargetId].alive) { 
             p.selectionSprite.visible = true; 
-            // Scale reduced (Base 3.5, Var 0.7)
-            const scaleBase = 3.5; const scaleVar = Math.sin(Date.now() * 0.005) * 0.7;
+            // Scale reduced (Base 15, Var 2.0)
+            const scaleBase = 15; const scaleVar = Math.sin(Date.now() * 0.005) * 2.0;
             p.selectionSprite.scale.set(scaleBase + scaleVar, scaleBase + scaleVar, 1);
             p.selectionSprite.material.rotation += 0.02;
         } else if (p.selectionSprite) { 
