@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.3)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.9)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -315,6 +315,62 @@
         }
         .circle-btn:hover { transform: scale(1.1); background: var(--primary-gold); color: #000; }
 
+        /* Top Right Controls Container */
+        .top-right-container {
+            position: absolute;
+            top: 20px;
+            top: max(20px, env(safe-area-inset-top));
+            right: 20px;
+            right: max(20px, env(safe-area-inset-right));
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            z-index: 4000; 
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6); 
+            border: 2px solid var(--primary-gold);
+            color: #fff; 
+            font-size: 1.2rem;
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            transition: all 0.2s;
+            pointer-events: auto;
+        }
+        .control-btn:hover { transform: scale(1.1); background: var(--primary-gold); color: #000; }
+        
+        /* Active state for music/sfx - PINK BG */
+        .control-btn.active {
+            background-color: var(--primary-gold); /* Pink background when ON */
+            color: #000; /* Black text when ON */
+        }
+        
+        .control-btn.off {
+            border-color: #555;
+            color: #888;
+            background: rgba(0,0,0,0.8);
+            opacity: 0.7;
+        }
+
+        /* AI Auto Button */
+        #btn-auto-play {
+            width: auto; padding: 0 15px; border-radius: 20px;
+            background: rgba(100, 100, 100, 0.5); border-color: #aaa;
+            font-size: 0.8rem; font-weight: bold;
+        }
+        #btn-auto-play.active {
+            background: rgba(255, 215, 0, 0.3); border-color: #ffd700; color: #ffd700;
+            animation: breathe 2s infinite;
+        }
+
         .home-btn { left: 20px; left: max(20px, env(safe-area-inset-left)); font-size: 1.5rem; padding-bottom: 3px; }
 
         #game-msg {
@@ -405,7 +461,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.3</div>
+        <div class="version-text">版本 23.9</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -488,6 +544,15 @@
 
     <div id="game-ui">
         <button class="circle-btn home-btn" onclick="window.resetGame()" title="回主選單">🏠</button>
+        
+        <!-- Top Right Controls -->
+        <div class="top-right-container">
+            <!-- Initialize with active class because default is ON -->
+            <button id="btn-sfx" class="control-btn active" onclick="window.toggleSFX()">🔊</button>
+            <button id="btn-music" class="control-btn active" onclick="window.toggleMusic()">🎵</button>
+            <button class="control-btn" onclick="window.toggleAutoPlay()" id="btn-auto-play">AI 代打</button>
+        </div>
+        
         <div id="scoreboard" style="display:none;"></div>
         <div id="top-announcer">
             <div id="timer">10</div>
@@ -541,6 +606,7 @@
     let CARD_NAMES = []; 
     // Fix: Re-add isTutorialMode
     let isTutorialMode = false;
+    let isAutoPlay = false; // New Auto Play State
 
     let activeLightnings = [], activeParticles = [], activeProjectiles = [];
     const SHARED_BOX_GEO = new THREE.BoxGeometry(1.2, 1.2, 1.2);
@@ -576,6 +642,7 @@
             defendFatigue: "防禦疲勞中", defend: "防禦", tired: "力盡🧱",
             cleanup: "等待戰場清理中...",
             incomplete: "名稱或房號不完整", connError: "連線錯誤，請重試", hostLeft: "房主已離開", full: "房間已滿", connecting: "連線中...",
+            aiAuto: "AI 代打", aiOn: "AI ON",
             cardDescs: {
                 0: "造成物理傷害，增加紅色怒氣",
                 1: "造成魔法傷害，增加藍色怒氣",
@@ -618,6 +685,7 @@
             defendFatigue: "Can't Block!", defend: "Defend", tired: "Tired🧱",
             cleanup: "Waiting for battlefield cleanup...",
             incomplete: "Name or Code incomplete", connError: "Connection Error", hostLeft: "Host disconnected", full: "Room Full", connecting: "Connecting...",
+            aiAuto: "AI Auto", aiOn: "AI ON",
             cardDescs: {
                 0: "Deals Physical DMG, builds Red Rage",
                 1: "Deals Magic DMG, builds Blue Rage",
@@ -705,6 +773,10 @@
         safeSetText('card-3', t.cardNames[3]);
         safeSetText('defend-card', t.cardNames[4]);
         safeSetText('super-card', t.cardNames[5]);
+
+        // Auto Play Button
+        const aiBtn = document.getElementById('btn-auto-play');
+        if(aiBtn) aiBtn.innerText = isAutoPlay ? t.aiOn : t.aiAuto;
         
         // Set cleanup message
         const cleanupMsg = document.querySelector('#cleanup-msg h1');
@@ -736,6 +808,38 @@
         if (selectedSlot !== -1 && players.length > 0) showCardDescription(selectedSlot);
     };
 
+    window.toggleAutoPlay = function() {
+        isAutoPlay = !isAutoPlay;
+        const btn = document.getElementById('btn-auto-play');
+        const t = TRANSLATIONS[currentLang];
+        if(btn) {
+            btn.classList.toggle('active', isAutoPlay);
+            btn.innerText = isAutoPlay ? t.aiOn : t.aiAuto;
+        }
+        SoundEngine.play('click');
+    };
+
+    window.toggleMusic = function() {
+        const on = SoundEngine.toggleMusic();
+        const btn = document.getElementById('btn-music');
+        if (btn) {
+            btn.classList.toggle('off', !on);
+            btn.classList.toggle('active', on);
+        }
+        SoundEngine.init();
+    };
+
+    window.toggleSFX = function() {
+        const on = SoundEngine.toggleSFX();
+        const btn = document.getElementById('btn-sfx');
+        if (btn) {
+            btn.classList.toggle('off', !on);
+            btn.classList.toggle('active', on);
+            btn.innerText = on ? '🔊' : '🔇';
+        }
+        SoundEngine.init();
+    };
+
     window.setLang = function(lang) {
         currentLang = lang;
         document.getElementById('lang-zh').classList.toggle('active', lang === 'zh-TW');
@@ -744,10 +848,20 @@
     };
 
     const SoundEngine = { ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); }, 
+        isMusicEnabled: true, isSFXEnabled: true,
+        toggleMusic() {
+            this.isMusicEnabled = !this.isMusicEnabled;
+            if (this.isMusicEnabled) { this.playBGM(); } else { this.stopBGM(); }
+            return this.isMusicEnabled;
+        },
+        toggleSFX() {
+            this.isSFXEnabled = !this.isSFXEnabled;
+            return this.isSFXEnabled;
+        },
         bgmOscillators: [], isPlayingBGM: false, melodyA: [{n:74,t:0,d:0.25},{n:74,t:0.5,d:0.25},{n:74,t:1,d:0.25},{n:76,t:1.5,d:0.25},{n:77,t:2,d:0.25},{n:76,t:2.5,d:0.25},{n:74,t:3,d:0.25},{n:69,t:3.5,d:0.25},{n:62,t:4,d:0.25},{n:69,t:4.5,d:0.25},{n:74,t:5,d:0.25},{n:77,t:5.5,d:0.25},{n:81,t:6,d:0.25},{n:82,t:6.25,d:0.25},{n:81,t:6.5,d:0.25},{n:77,t:7,d:0.25},{n:74,t:8,d:0.25},{n:74,t:8.5,d:0.25},{n:74,t:9,d:0.25},{n:76,t:9.5,d:0.25},{n:77,t:10,d:0.25},{n:76,t:10.5,d:0.25},{n:74,t:11,d:0.25},{n:69,t:11.5,d:0.25},{n:86,t:12,d:0.25},{n:81,t:13,d:0.25},{n:77,t:14,d:0.25},{n:74,t:15,d:0.5},
         {n:82,t:32,d:1.5},{n:81,t:33.5,d:0.5},{n:77,t:34,d:2},
         {n:84,t:36,d:1.5},{n:82,t:37.5,d:0.5},{n:81,t:38,d:1},{n:86,t:39,d:1}],
-        playBGM() { if (this.isPlayingBGM) return; this.init(); this.isPlayingBGM = true; this.scheduleNote(0); },
+        playBGM() { if (!this.isMusicEnabled || this.isPlayingBGM) return; this.init(); this.isPlayingBGM = true; this.scheduleNote(0); },
         stopBGM() { this.isPlayingBGM = false; this.bgmOscillators.forEach(o => { try{o.osc.stop();o.gain.disconnect();}catch(e){} }); this.bgmOscillators=[]; if(this.bgmTimer) clearTimeout(this.bgmTimer); },
         midiToFreq(m){return 440*Math.pow(2,(m-69)/12);},
         scheduleNote(beatIndex){
@@ -766,7 +880,7 @@
             if(beatIndex%1===0) this.play('bonk');
             this.bgmTimer=setTimeout(()=>{this.scheduleNote(beatIndex+0.25);},(beatDur*0.25)*1000);
         },
-        play(type) { this.init(); const now = this.ctx.currentTime; const masterGain = this.ctx.createGain(); masterGain.connect(this.ctx.destination); masterGain.gain.setValueAtTime(0.4, now); const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(2000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.3); dur=0.3; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); env.gain.setValueAtTime(0.3, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } 
+        play(type) { if (!this.isSFXEnabled) return; this.init(); const now = this.ctx.currentTime; const masterGain = this.ctx.createGain(); masterGain.connect(this.ctx.destination); masterGain.gain.setValueAtTime(0.4, now); const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(2000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.3); dur=0.3; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); env.gain.setValueAtTime(0.3, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; case 'skid': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(400, now + 0.4); env.gain.setValueAtTime(0.3, now); env.gain.linearRampToValueAtTime(0, now + 0.4); dur=0.4; break; case 'electric': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(2000, now + 0.1); osc.frequency.linearRampToValueAtTime(500, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.01, now + 0.3); dur=0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } 
     };
 
     function showMove(text) { const md = document.getElementById('move-display'); if(md) { md.innerText = text; md.style.opacity = "1"; md.classList.add('announce-anim'); } }
@@ -825,6 +939,24 @@
     }
 
     function hideCardDescription() { const el = document.getElementById('card-description'); if(el) el.style.opacity = 0; }
+
+    // --- HELPER FOR ULTRA SPRITE ---
+    function createUltraTextSprite(colorHex) {
+        const canvas = document.createElement('canvas'); 
+        const ctx = canvas.getContext('2d'); 
+        canvas.width = 512; canvas.height = 128; 
+        
+        ctx.fillStyle = colorHex; 
+        ctx.font = 'bold 80px "Cinzel", "Arial Black"'; 
+        ctx.textAlign = 'center'; 
+        ctx.shadowColor = colorHex;
+        ctx.shadowBlur = 20;
+        ctx.fillText("ULTRA", 256, 90); 
+        
+        const texture = new THREE.CanvasTexture(canvas); 
+        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false }); 
+        return new THREE.Sprite(mat); 
+    }
 
     // --- GAME STATE HELPERS ---
     function updateHPUI() {
@@ -1184,7 +1316,7 @@
     function createStarGeometry() { const s = new THREE.Shape(); const o=5.5, n=2.8; for(let i=0; i<12; i++){ const a=(i/12)*Math.PI*2, r=(i%2===0)?o:n; if(i===0) s.moveTo(Math.cos(a)*r, Math.sin(a)*r); else s.lineTo(Math.cos(a)*r, Math.sin(a)*r); } s.closePath(); return new THREE.ShapeGeometry(s); }
     function createRuneLine() { const pts = [new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0.5, 0, 0), new THREE.Vector3(0, 0.5, 0)]; const geo = new THREE.BufferGeometry().setFromPoints(pts); return new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff })); }
     function createAlgizRune() { const pts = [new THREE.Vector3(0, -0.8, 0), new THREE.Vector3(0, 0.8, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(-0.6, 0.6, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.6, 0.6, 0)]; const geo = new THREE.BufferGeometry().setFromPoints(pts); return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 })); }
-    function createReticleTexture() { const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 8; ctx.shadowBlur = 10; ctx.shadowColor = '#ff0000'; ctx.beginPath(); ctx.setLineDash([30, 15]); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(128, 40); ctx.lineTo(128, 10); ctx.moveTo(128, 216); ctx.lineTo(128, 246); ctx.moveTo(40, 128); ctx.lineTo(10, 128); ctx.moveTo(216, 128); ctx.lineTo(246, 128); ctx.stroke(); ctx.fillStyle = '#ff0000'; ctx.beginPath(); ctx.arc(128, 128, 8, 0, Math.PI * 2); ctx.fill(); return new THREE.CanvasTexture(canvas); }
+    function createReticleTexture() { const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256; const ctx = canvas.getContext('2d'); ctx.strokeStyle = '#ff3333'; ctx.lineWidth = 12; ctx.shadowBlur = 15; ctx.shadowColor = '#ff0000'; ctx.beginPath(); ctx.setLineDash([30, 15]); ctx.arc(128, 128, 110, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(128, 40); ctx.lineTo(128, 10); ctx.moveTo(128, 216); ctx.lineTo(128, 246); ctx.moveTo(40, 128); ctx.lineTo(10, 128); ctx.moveTo(216, 128); ctx.lineTo(246, 128); ctx.stroke(); ctx.fillStyle = '#ff3333'; ctx.beginPath(); ctx.arc(128, 128, 12, 0, Math.PI * 2); ctx.fill(); return new THREE.CanvasTexture(canvas); }
 
     class Odin {
         constructor(cfg) {
@@ -1198,7 +1330,7 @@
             this.aura = new SuperAura(this.group); this.ballRotationMultiplier = 1.0; 
 
             // FIX: depthWrite: false, colorWrite: false
-            const hitGeo = new THREE.BoxGeometry(4, 7, 4); // SHRUNK HITBOX 
+            const hitGeo = new THREE.BoxGeometry(3, 6, 3); // SHRUNK HITBOX 
             const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false }); 
             this.hitBox = new THREE.Mesh(hitGeo, hitMat); this.hitBox.position.y = 3.5; this.group.add(this.hitBox);
             
@@ -1226,6 +1358,20 @@
             if (this.id !== myPlayerIndex) {
                 this.group.add(this.labelSprite);
             }
+
+            // --- ULTRA Label Sprite ---
+            // Create Red and Blue versions
+            this.ultraRedSprite = createUltraTextSprite("#ff3333");
+            this.ultraRedSprite.position.y = -7; 
+            this.ultraRedSprite.scale.set(10, 2.5, 1);
+            this.ultraRedSprite.visible = false;
+            this.group.add(this.ultraRedSprite);
+
+            this.ultraBlueSprite = createUltraTextSprite("#3333ff");
+            this.ultraBlueSprite.position.y = -7;
+            this.ultraBlueSprite.scale.set(10, 2.5, 1);
+            this.ultraBlueSprite.visible = false;
+            this.group.add(this.ultraBlueSprite);
             
             this.modelContainer = new THREE.Group(); this.group.add(this.modelContainer);
             
@@ -1277,7 +1423,7 @@
             this.meatBlock = createMeatModelShared(); this.meatBlock.visible = false; this.group.add(this.meatBlock);
             
             this.selectionSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: createReticleTexture(), transparent: true, depthTest: false, depthWrite: false }));
-            this.selectionSprite.scale.set(5, 5, 1); 
+            this.selectionSprite.scale.set(15, 15, 1); 
             this.selectionSprite.position.set(0, 3.5, 0); // Head height
             this.selectionSprite.visible = false;
             this.group.add(this.selectionSprite);
@@ -1355,6 +1501,21 @@
                 this.modelContainer.visible = false; 
                 this.meatBlock.visible = true; 
                 this.aura.deactivate(); // FIX: Remove rage aura on death
+                
+                // Hide status icons immediately on death
+                if(this.brokenShieldIcon) this.brokenShieldIcon.visible = false;
+                if(this.selectionSprite) this.selectionSprite.visible = false;
+                if(this.targetLabel) this.targetLabel.visible = false;
+                if(this.ultraRedSprite) this.ultraRedSprite.visible = false; // Hide ultra
+                if(this.ultraBlueSprite) this.ultraBlueSprite.visible = false; // Hide ultra
+                if(this.id === myPlayerIndex) {
+                    // Hide my UI if dead
+                    if(this.uiSprite) this.uiSprite.visible = false;
+                } else {
+                    // Hide others UI if dead
+                    // if(this.uiSprite) this.uiSprite.visible = false;  <-- FIXED: KEEP UI SPRITE VISIBLE FOR "BARBECUED"
+                    if(this.labelSprite) this.labelSprite.visible = false; 
+                }
             } 
             this.updateLabel(); updateHPUI(); 
         }
@@ -1742,30 +1903,71 @@
     
     function cpuThink() {
         if (gameState !== 'WAITING') return;
-        if (timeLeft < (TURN_TIME - 6)) return;
-        // NEW: Freezing CPU last 4 seconds
-        if (timeLeft <= 4) return;
+        
+        // FIX: Allow AI to think from start (10s) until 4s.
+        // Previously: if (timeLeft < (TURN_TIME - 6)) return; was wrong for TURN_TIME=10
+        if (timeLeft > (TURN_TIME - 1)) return; // Short delay (start at 9)
+        
+        if (timeLeft <= 4) return; // Stop thinking at 4s
 
         players.forEach((p, idx) => {
             if (!p.alive) return;
-            if ((isMultiplayer && window.Online.playerMap[idx] && window.Online.playerMap[idx].isCpu) || (!isMultiplayer && idx !== 0)) {
+            
+            const isCpuPlayer = (isMultiplayer && window.Online.playerMap[idx] && window.Online.playerMap[idx].isCpu);
+            const isEnemyInSingle = (!isMultiplayer && idx !== 0);
+            const isMyAuto = (idx === myPlayerIndex && isAutoPlay); // Local auto play
+
+            if (isCpuPlayer || isEnemyInSingle || isMyAuto) {
                  const threats = players.filter(enemy => enemy.alive && enemy.id !== idx && enemy.action.target === idx);
                  let chosenTargetId = p.action.target;
                  const fatiguedTargets = players.filter(o => o.id !== idx && o.alive && o.fatigue >= 100);
+                 
                  if (chosenTargetId === -1 || Math.random() < 0.4 || threats.length > 0) {
                      if (fatiguedTargets.length > 0 && Math.random() < 0.85) chosenTargetId = fatiguedTargets[Math.floor(Math.random() * fatiguedTargets.length)].id;
                      else if (threats.length > 0 && Math.random() < 0.7) chosenTargetId = threats[Math.floor(Math.random() * threats.length)].id;
                      else { const validTargets = players.filter(o => o.id !== idx && o.alive); if (validTargets.length > 0) chosenTargetId = validTargets[Math.floor(Math.random() * validTargets.length)].id; }
                  }
-                 if (chosenTargetId !== -1) { p.action.target = chosenTargetId; if (players[chosenTargetId]) p.face(players[chosenTargetId].group.position); }
-                 if (p.action.card === -1 || Math.random() < 0.3) {
-                    const r = p.rage; const maxRage = Math.max(r.red, r.blue); let choice = 0;
+                 
+                 if (chosenTargetId !== -1 && players[chosenTargetId]) { 
+                     p.action.target = chosenTargetId; 
+                     p.face(players[chosenTargetId].group.position); 
+                 }
+                 
+                 let choice = p.action.card;
+                 if (choice === -1 || Math.random() < 0.3) {
+                    const r = p.rage; const maxRage = Math.max(r.red, r.blue); 
+                    choice = 0;
                     if (maxRage >= 99 && Math.random() < 0.9) choice = 5;
-                    else { const isRed = r.red >= r.blue; const hasRage = maxRage > 20; if (hasRage) { const roll = Math.random(); if (isRed) choice = roll < 0.6 ? 0 : (roll < 0.9 ? 2 : 4); else choice = roll < 0.6 ? 1 : (roll < 0.9 ? 3 : 4); } else { const roll = Math.random(); choice = roll < 0.4 ? 0 : (roll < 0.8 ? 1 : 4); } }
+                    else { 
+                        const isRed = r.red >= r.blue; const hasRage = maxRage > 20; 
+                        if (hasRage) { 
+                            const roll = Math.random(); 
+                            if (isRed) choice = roll < 0.6 ? 0 : (roll < 0.9 ? 2 : 4); 
+                            else choice = roll < 0.6 ? 1 : (roll < 0.9 ? 3 : 4); 
+                        } else { 
+                            const roll = Math.random(); 
+                            choice = roll < 0.4 ? 0 : (roll < 0.8 ? 1 : 4); 
+                        } 
+                    }
                     if (choice === 4 && p.fatigue >= 100) choice = (r.red >= r.blue) ? 0 : 1;
+                    
                     p.action.card = choice;
-                    // AI 的選擇時間也設為當前
                     p.action.selectionTime = Date.now();
+                 }
+
+                 // Special handling for local Auto Play UI
+                 if (isMyAuto) {
+                     if (chosenTargetId !== -1 && chosenTargetId !== selectedTargetId) {
+                         selectedTargetId = chosenTargetId;
+                         window.updateHPUI();
+                     }
+                     if (choice !== selectedSlot) {
+                         window.selectCard(choice);
+                     }
+                     // Network Sync for Auto Play
+                     if (isMultiplayer && !window.Online.isHost) {
+                         window.Network.sendHost({ type: 'ACTION_SUBMIT', action: p.action });
+                     }
                  }
             }
         });
@@ -1779,7 +1981,6 @@
         const tEl = document.getElementById('timer'); if (tEl) { tEl.innerText = timeLeft; tEl.style.display = "block"; }
         document.getElementById('turn-hint').style.display = 'block';
 
-        // 預設鎖定邏輯：對面 -> 左 -> 右
         const getPriorityTarget = (myId) => {
             const opposite = (myId + 2) % 4;
             const left = (myId + 1) % 4;
@@ -1792,39 +1993,36 @@
 
         players.forEach((p, i) => { 
             p.fatigue = Math.max(0, p.fatigue - 35); p.showBrokenShield = p.fatigue >= 100; p.defendHitCount = 0; p.blockedInTurn = false; 
-            // 初始化 action，預設 target
             const defaultTarget = getPriorityTarget(p.id);
             p.action = { card: -1, target: defaultTarget, selectionTime: 0 }; 
             if (p.hexShield) p.hexShield.visible = false; p.updateLabel(); 
             
-            // 讓角色面向預設目標
             if (defaultTarget !== -1 && players[defaultTarget]) {
                 p.face(players[defaultTarget].group.position);
-                // 對於本機玩家，更新紅色選取圈
                 if (i === myPlayerIndex) selectedTargetId = defaultTarget;
             } else {
-                 if (i === myPlayerIndex) selectedTargetId = -1; // Hide Reticle
+                 if (i === myPlayerIndex) selectedTargetId = -1; 
             }
         });
         resetCamera(); window.updateHPUI(); 
         if (timerInterval) clearInterval(timerInterval); if (cpuThinkTimer) clearInterval(cpuThinkTimer); 
-        if (!isMultiplayer || window.Online.isHost) cpuThinkTimer = setInterval(cpuThink, 800); 
+        // CPU Think runs every 800ms
+        cpuThinkTimer = setInterval(cpuThink, 800); 
         timerInterval = setInterval(() => { timeLeft--; if (tEl) tEl.innerText = timeLeft; if (timeLeft <= 0) { if(tEl) tEl.style.display = "none"; if (!isMultiplayer || window.Online.isHost) endTurn(); } }, 1000);
     }
 
     window.selectCard = function(i) { 
         if (gameState !== 'WAITING') return; const p = players[myPlayerIndex]; if (!p || !p.alive) return;
-        selectedSlot = i; document.querySelectorAll('.card').forEach((c, idx) => c.classList.toggle('selected', idx === i)); SoundEngine.play('click'); 
+        selectedSlot = i; document.querySelectorAll('.card').forEach((c, idx) => c.classList.toggle('selected', idx === i)); 
+        if(!isAutoPlay) SoundEngine.play('click'); 
+
         showCardDescription(i); p.action.card = i;
-        // 更新選擇時間，用於判定先手
         p.action.selectionTime = Date.now();
 
-        // 關鍵修正：Loki 磁鐵交換 (卡片2) 需至少 2 名對手
         const aliveEnemies = players.filter(pl => pl.id !== p.id && pl.alive).length;
         if (p.type === 'Loki' && i === 2) {
              if (aliveEnemies < 2) {
                  showMove("需2名以上對手"); 
-                 // 取消選擇
                  p.action.card = -1;
                  selectedSlot = -1;
                  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
@@ -1834,15 +2032,11 @@
 
         const isMagicUlt = (i === 5 && !((p.id === 0) ? (playerRage.red >= 99) : (p.rage.red >= 99)));
         
-        // 修正：攻擊卡目標判定
         if (i === 0 || i === 1 || (i === 5 && isMagicUlt === false)) {
-            // 是攻擊卡
             if (p.action.target === myPlayerIndex || p.action.target === -1) {
-                // 嘗試使用 selectedTargetId
                 if (selectedTargetId !== -1 && selectedTargetId !== myPlayerIndex && players[selectedTargetId].alive) {
                     p.action.target = selectedTargetId;
                 } else {
-                     // 否則使用預設優先級
                     const getPriorityTarget = (myId) => {
                         const opposite = (myId + 2) % 4;
                         const left = (myId + 1) % 4;
@@ -1855,16 +2049,13 @@
                     p.action.target = getPriorityTarget(p.id);
                 }
             }
-            // Show Reticle if we have a target
             if (p.action.target !== -1 && p.action.target !== myPlayerIndex) {
                  selectedTargetId = p.action.target;
             }
         }
         
-        // 防禦、反射、魔法奧義(AOE) 仍需以自身為目標 (邏輯上)
         if (i === 2 || i === 3 || i === 4 || isMagicUlt) { 
              p.action.target = myPlayerIndex; 
-             // Hide reticle for self-target moves
              selectedTargetId = -1;
         }
 
@@ -1873,9 +2064,6 @@
 
     function handleInt(x, y) { 
         if (gameState !== 'WAITING') return; 
-        // Allow clicking enemies even without card selected (to change target)
-        // if (selectedSlot === -1) return; 
-        
         const p = players[myPlayerIndex]; if (!p || !p.alive) return;
         const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera); 
         const chars = players.filter(pl => pl && pl.id !== myPlayerIndex && pl.alive).map(pl => pl.group); const intersects = raycaster.intersectObjects(chars, true); 
@@ -1884,7 +2072,6 @@
             if (o) { 
                 if (o.userData.playerId === myPlayerIndex) return;
                 selectedTargetId = o.userData.playerId; p.action.target = selectedTargetId; 
-                // 更新選擇時間，用於判定先手
                 p.action.selectionTime = Date.now();
                 p.face(players[selectedTargetId].group.position); 
                 SoundEngine.init(); SoundEngine.play('click'); window.updateHPUI(); 
@@ -1944,7 +2131,38 @@
         } else if (p.selectionSprite) { 
             p.selectionSprite.visible = false; 
         } 
-        if (p.targetLabel) p.targetLabel.visible = false; } }); renderer.render(scene, camera); } 
+        if (p.targetLabel) p.targetLabel.visible = false; 
+        
+        // ULTRA Label Animation
+        if (p.alive) {
+            const r = p.rage;
+            const maxRage = Math.max(r.red, r.blue);
+            if (maxRage >= 99) {
+                const isRed = r.red >= r.blue;
+                if (isRed) {
+                    if (p.ultraRedSprite) {
+                        p.ultraRedSprite.visible = true;
+                        if (p.ultraBlueSprite) p.ultraBlueSprite.visible = false;
+                        const s = 10 + Math.sin(Date.now() * 0.01) * 1;
+                        p.ultraRedSprite.scale.set(s, 2.5 + Math.sin(Date.now() * 0.01)*0.2, 1);
+                        p.ultraRedSprite.material.opacity = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
+                    }
+                } else {
+                     if (p.ultraBlueSprite) {
+                        p.ultraBlueSprite.visible = true;
+                        if (p.ultraRedSprite) p.ultraRedSprite.visible = false;
+                        const s = 10 + Math.sin(Date.now() * 0.01) * 1;
+                        p.ultraBlueSprite.scale.set(s, 2.5 + Math.sin(Date.now() * 0.01)*0.2, 1);
+                        p.ultraBlueSprite.material.opacity = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
+                    }
+                }
+            } else {
+                 if (p.ultraRedSprite) p.ultraRedSprite.visible = false;
+                 if (p.ultraBlueSprite) p.ultraBlueSprite.visible = false;
+            }
+        }
+        
+        } }); renderer.render(scene, camera); } 
     }
 
     
