@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.20)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.23)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -490,7 +490,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.20</div>
+        <div class="version-text">版本 23.23</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -688,7 +688,7 @@
                 2: { "Odin": "受到物理攻擊時自動反擊", "Loki": "受到物理攻擊時與敵人交換位置" },
                 3: "反彈受到的魔法傷害",
                 4: "大幅減傷，但增加疲勞值",
-                5: { "Odin": "消耗全部怒氣，造成毀滅性連擊", "Loki": "消耗全部怒氣，對單一目標連續衝撞" }
+                5: { "Odin": "消耗全部怒氣，造成毀滅性連擊", "Loki": "70% 成功率與敵人交換血量 (HP Swap)！" }
             },
             logBlock: "格檔！", logCounter: "的反擊在奧義面前失效了！",
             logReflect: "的反射在奧義面前失效了！", logHit: "的攻擊！",
@@ -731,7 +731,7 @@
                 2: { "Odin": "Counters Physical attacks automatically", "Loki": "Swaps position when hit by Physical attack" },
                 3: "Reflects Magic damage back",
                 4: "Reduces damage significantly, adds Fatigue",
-                5: { "Odin": "Consumes Max Rage for devastating combo", "Loki": "Consumes Max Rage to rush target repeatedly" }
+                5: { "Odin": "Consumes Max Rage for devastating combo", "Loki": "70% Chance to Swap HP with enemy!" }
             },
             logBlock: "Blocked", logCounter: "'s counter failed against Ultimate!",
             logReflect: "'s reflect failed against Ultimate!", logHit: "'s attack!",
@@ -863,6 +863,7 @@
         const btn = document.getElementById('btn-music');
         if (btn) {
             btn.classList.toggle('off', !on);
+            btn.classList.toggle('active', on);
         }
         SoundEngine.init();
     };
@@ -872,6 +873,7 @@
         const btn = document.getElementById('btn-sfx');
         if (btn) {
             btn.classList.toggle('off', !on);
+            btn.classList.toggle('active', on);
             btn.innerText = on ? '🔊' : '🔇';
         }
         SoundEngine.init();
@@ -946,7 +948,7 @@
         play(type) { if (!this.isSFXEnabled) return; this.init(); const now = this.ctx.currentTime; const masterGain = this.ctx.createGain(); masterGain.connect(this.ctx.destination); 
             // Scale SFX by sfxVolume. Base SFX vol was 0.4
             masterGain.gain.setValueAtTime(0.4 * this.sfxVolume, now); 
-            const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(2000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.3); dur=0.3; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); env.gain.setValueAtTime(0.3, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; case 'skid': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(400, now + 0.4); env.gain.setValueAtTime(0.3, now); env.gain.linearRampToValueAtTime(0, now + 0.4); dur=0.4; break; case 'electric': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(2000, now + 0.1); osc.frequency.linearRampToValueAtTime(500, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.01, now + 0.3); dur=0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } 
+            const osc = this.ctx.createOscillator(); const env = this.ctx.createGain(); osc.connect(env); env.connect(masterGain); let dur = 0.3; switch(type) { case 'click': osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.1); dur=0.1; break; case 'slash': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'magic': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(2000, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.3); dur=0.3; break; case 'hit': osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now+0.15); env.gain.setValueAtTime(0.4, now); env.gain.linearRampToValueAtTime(0, now+0.15); dur=0.15; break; case 'counter': osc.type = 'square'; osc.frequency.setValueAtTime(1100, now); env.gain.setValueAtTime(0.1, now); env.gain.linearRampToValueAtTime(0, now+0.2); dur=0.2; break; case 'super': osc.type = 'sawtooth'; env.gain.setValueAtTime(0.3, now); osc.frequency.setValueAtTime(90, now); env.gain.exponentialRampToValueAtTime(0.001, now+1.2); dur=1.2; break; case 'bonk': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); env.gain.setValueAtTime(0.8, now); env.gain.exponentialRampToValueAtTime(0.001, now+0.2); dur=0.2; break; case 'ding': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05); env.gain.setValueAtTime(0.5, now); env.gain.exponentialRampToValueAtTime(0.001, now + 0.3); dur = 0.3; break; case 'skid': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.linearRampToValueAtTime(400, now + 0.4); env.gain.setValueAtTime(0.3, now); env.gain.linearRampToValueAtTime(0, now + 0.4); dur=0.4; break; case 'electric': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(500, now); osc.frequency.linearRampToValueAtTime(2000, now + 0.1); osc.frequency.linearRampToValueAtTime(500, now + 0.2); env.gain.setValueAtTime(0.2, now); env.gain.exponentialRampToValueAtTime(0.01, now + 0.3); dur=0.3; break; } osc.start(now); osc.stop(now+dur); setTimeout(() => { if(osc) osc.disconnect(); if(env) env.disconnect(); if(masterGain) masterGain.disconnect(); }, 2000); } 
     };
 
     function showMove(text) { const md = document.getElementById('move-display'); if(md) { md.innerText = text; md.style.opacity = "1"; md.classList.add('announce-anim'); } }
@@ -1024,6 +1026,22 @@
         return new THREE.Sprite(mat); 
     }
 
+    // --- HELPER FOR EMOJI SPRITE ---
+    function createEmojiSprite(emoji) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 256; canvas.height = 256;
+        ctx.font = '150px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, 128, 128);
+        const texture = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(15, 15, 1);
+        return sprite;
+    }
+
     // --- GAME STATE HELPERS ---
     function updateHPUI() {
         const t = TRANSLATIONS[currentLang];
@@ -1047,10 +1065,10 @@
             }
         }
         
-        players.forEach(pl => { 
-            if (pl.selectionRing) pl.selectionRing.visible = (selectedTargetId === pl.id); 
-            if (pl.updateLabel) pl.updateLabel(); 
-            if (pl.brokenShieldIcon) { pl.brokenShieldIcon.visible = pl.showBrokenShield; }
+        players.forEach(p => { 
+            if (p.selectionRing) p.selectionRing.visible = (selectedTargetId === p.id); 
+            if (p.updateLabel) p.updateLabel(); 
+            if (p.brokenShieldIcon) { p.brokenShieldIcon.visible = p.showBrokenShield; }
         });
         if (window.UI) window.UI.updateScoreboard(); 
     }
@@ -1439,6 +1457,17 @@
             this.ultraBlueSprite.visible = false;
             this.group.add(this.ultraBlueSprite);
             
+            // --- NEW: LOKI EMOJIS ---
+            this.smirkSprite = createEmojiSprite("😈");
+            this.smirkSprite.position.y = 8;
+            this.smirkSprite.visible = false;
+            this.group.add(this.smirkSprite);
+
+            this.sweatSprite = createEmojiSprite("😓");
+            this.sweatSprite.position.y = 8;
+            this.sweatSprite.visible = false;
+            this.group.add(this.sweatSprite);
+
             this.modelContainer = new THREE.Group(); this.group.add(this.modelContainer);
             
             const bodyColor = (this.type === 'Loki' ? 0x0a4a0a : 0xffcc00);
@@ -1637,8 +1666,16 @@
             loseRage(t, type === 0); 
             t.takeDamage(reducedDmg, type, a.group.position);
             
-            // New: Gain Rage when blocked successfully
-            gainRage(a, type === 0, 18); // Gain ~50% of attack rage (35/2 = 17.5 -> 18)
+            // --- FIX: SMART BLOCK RAGE GAIN ---
+            // If blocker has Blue Rage, add Blue.
+            // If blocker has Red Rage, add Red.
+            // If blocker has 0 Rage, add based on incoming attack type (Phys -> Red, Mag -> Blue).
+            let isRedGain = true;
+            if (t.rage.blue > 0) isRedGain = false;
+            else if (t.rage.red > 0) isRedGain = true;
+            else isRedGain = (type === 0);
+            
+            gainRage(t, isRedGain, 18); 
 
             // Show red damage number slightly delayed or offset
             setTimeout(() => spawnDamageNumber(t, reducedDmg), 200);
@@ -1681,11 +1718,42 @@
     
     async function performAttack(attacker, target, type) { 
         if (!attacker || !target) return; const tp = target.group.position.clone(), orig = attacker.group.position.clone(); 
+        
+        // --- LOKI MAGIC SPLASH & SMIRK LOGIC ---
+        // type 1 is Magic
+        if (type === 1 && attacker.type === 'Loki') {
+             // 50% Chance
+             if (Math.random() < 0.5) {
+                 // Success: Show Smirk
+                 if (attacker.smirkSprite) {
+                     attacker.smirkSprite.visible = true;
+                     setTimeout(() => { if(attacker.smirkSprite) attacker.smirkSprite.visible = false; }, 2000);
+                 }
+             } else {
+                 // Fail: Show Sweat
+                 if (attacker.sweatSprite) {
+                     attacker.sweatSprite.visible = true;
+                     setTimeout(() => { if(attacker.sweatSprite) attacker.sweatSprite.visible = false; }, 2000);
+                 }
+                 // Mark as failed splash in userData so we check later? 
+                 // Or just handle splash logic here?
+                 // Actually, let's store a flag on attacker for this specific action instance
+                 attacker.group.userData.splashFailed = true;
+             }
+        } else {
+             if(attacker.group.userData) attacker.group.userData.splashFailed = false;
+        }
+
         if (type === 0 && target.action.card === 2 && target.type === 'Odin') { const strikePos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, strikePos, 200); SoundEngine.play('magic'); target.group.visible = false; showMove("Spank!"); const behindPos = attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45)); target.group.position.copy(behindPos); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; hideMove(); await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
         if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); 
         let dmg = (attacker.type === 'Loki') ? 60 : 80; // FIX: Base on attacker
         victim.takeDamage(dmg, 0, attacker.group.position); spawnDamageNumber(victim, dmg); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
-        if (type === 0) { if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } } else { 
+        
+        if (type === 0) { 
+             // ... Existing Melee Code ...
+             if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 150); SoundEngine.play('hit'); calcDamage(attacker, target, 0); await sleep(300); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); } else { const sPos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, sPos, 250); attacker.weaponGroup.rotation.z = 0.8; SoundEngine.play('slash'); calcDamage(attacker, target, 0); await sleep(300); attacker.weaponGroup.rotation.z = 0; await move(attacker.group, orig, 500); } 
+        } else { 
+            // MAGIC
             if (attacker.type === 'Loki') { 
                 const throwStart = attacker.group.position.clone().add(new THREE.Vector3(0, 30, 0)), throwEnd = target.group.position.clone().add(new THREE.Vector3(0, 20, 0)); activeProjectiles.push(new ParabolicMeatProjectile(throwStart, throwEnd)); SoundEngine.play('magic'); await sleep(800); 
             } else { 
@@ -1700,7 +1768,7 @@
                 await sleep(800); 
             } 
             if (target.action.card === 3 && type === 1) { await focusOnAction(target, attacker, 400); if (target.type === 'Odin') { target.weaponGroup.rotation.z = 1.2; await move(target.weaponGroup, new THREE.Vector3(0,0,5), 100); showMove(CARD_NAMES[3]); for (let i = 0; i < 12; i++) { setTimeout(() => { activeLightnings.push(new OptimizedLightningBolt(target.group.position.clone().add(new THREE.Vector3(0,25,0)), attacker.group.position.clone().add(new THREE.Vector3(0,25,0)), 0xff0000)); SoundEngine.play('magic'); }, i * 50); } await sleep(1000); await move(target.weaponGroup, new THREE.Vector3(0,0,0), 100); target.weaponGroup.rotation.z = 0; hideMove(); } else if (target.type === 'Loki') { 
-            // --- UPDATED LOKI MAGIC REFLECT ANIMATION ---
+            // ... Reflect logic ...
             target.ballRotationMultiplier = 15.0; 
             target.aura.activate(false); // Blue Aura for magic reflect
             const originalBallPos = target.ball.position.clone(); 
@@ -1708,7 +1776,6 @@
             attacker.group.getWorldPosition(worldPosAttacker); 
             worldPosAttacker.y += 30; 
             
-            // Grow ball
             target.ball.scale.set(3,3,3);
 
             await new Promise(res => { 
@@ -1726,57 +1793,87 @@
                 back(); 
             }); 
             
-            // Reset
             target.ball.scale.set(1,1,1);
             target.aura.deactivate();
             target.ballRotationMultiplier = 1.0; 
-        } SoundEngine.play('counter'); await sleep(1000); } calcDamage(attacker, target, 1); } 
+        } SoundEngine.play('counter'); await sleep(1000); } 
+        
+        calcDamage(attacker, target, 1); 
+        
+        // --- LOKI MAGIC BOUNCE LOGIC (Only if not blocked/reflected AND not failed probability) ---
+        if (attacker.type === 'Loki' && type === 1 && target.action.card !== 4 && target.action.card !== 3) {
+             // Check if splash failed in the 50% roll above
+             if (!attacker.group.userData.splashFailed) {
+                 const bounceTargets = players.filter(pl => pl && pl.id !== attacker.id && pl.id !== target.id && pl.alive);
+                 if (bounceTargets.length > 0) {
+                     const t2 = bounceTargets[Math.floor(Math.random() * bounceTargets.length)];
+                     const p1 = target.group.position.clone().add(new THREE.Vector3(0, 20, 0));
+                     const p2 = t2.group.position.clone().add(new THREE.Vector3(0, 20, 0));
+                     // Visual Bounce
+                     activeProjectiles.push(new ParabolicMeatProjectile(p1, p2));
+                     await sleep(600);
+                     // Damage
+                     let dmg = 100 * 0.6; // 60% of 100
+                     t2.takeDamage(dmg, 1, target.group.position);
+                     spawnDamageNumber(t2, dmg);
+                     // Rage for Loki (Blue)
+                     gainRage(attacker, false, 20); // Bonus rage for bounce hit
+                 }
+             }
+        }
+    } 
     }
     async function performLightningStorm(p) { 
         SoundEngine.play('super'); 
+        // This function is for Odin's Blue Ult (now separated from Loki's)
         const targets = players.filter(o => o && o.id !== p.id && o.alive); 
+        p.takeDamage(p.maxHP * 0.25, 2); 
+        const pullBackPos = new THREE.Vector3(0, 450, 650), pullBackCenter = new THREE.Vector3(0, 40, 0), originalCamPos = camera.position.clone(); await new Promise(res => { let s = performance.now(); function up() { let pv = Math.min(1, (performance.now() - s) / 800); camera.position.lerpVectors(originalCamPos, pullBackPos, pv); camera.lookAt(pullBackCenter); if (pv < 1) requestAnimationFrame(up); else res(); } up(); }); await sleep(300); for (let i = 0; i < 8; i++) { targets.forEach(t => { const sY = t.group.position.clone().add(new THREE.Vector3((Math.random()-0.5)*30, 500, (Math.random()-0.5)*30)); activeLightnings.push(new OptimizedLightningBolt(sY, t.group.position)); }); SoundEngine.play('magic'); await sleep(150); } await sleep(400); targets.forEach(t => calcDamage(p, t, 1, true)); await sleep(400); resetCamera();
+    }
+
+    async function performLokiBlueUlt(attacker, target) {
+        // Roll chance
+        const success = Math.random() < 0.7; // 70%
         
-        if (p.type === 'Loki') { 
-            // Loki Logic
-            p.takeDamage(p.maxHP * 0.25, 2); 
-            // ... MeatDrop loop ...
-            for(let i=0; i<3; i++) { 
-                targets.forEach(t => activeProjectiles.push(new MeatDrop(t.group.position, 8.75, true))); 
-                await sleep(400); 
-            } 
-            await sleep(600); 
-            
-            // Damage and Steal
-            for (const t of targets) {
-                calcDamage(p, t, 1, true);
-                // Steal Logic
-                if (!t.blockedInTurn) {
-                    let stolen = 0;
-                    if (t.rage.red > 0) {
-                        stolen = Math.floor(t.rage.red * 0.5);
-                        t.rage.red -= stolen;
-                    } else if (t.rage.blue > 0) {
-                        stolen = Math.floor(t.rage.blue * 0.5);
-                        t.rage.blue -= stolen;
-                    }
-                    
-                    if (stolen > 0) {
-                        // Loki gains Blue Rage
-                        p.rage.blue = Math.min(100, p.rage.blue + stolen);
-                        // Update Global if needed (though UI update handles it via object ref usually)
-                        if (p.id === 0) playerRage.blue = p.rage.blue;
-                        
-                        // Visual
-                        spawnDamageNumber(p, `+${stolen}%`, "#55ccff"); // Blue color
-                    }
-                }
+        if (success) {
+            // Show Smirk
+            if (attacker.smirkSprite) {
+                attacker.smirkSprite.visible = true;
+                setTimeout(() => { if(attacker.smirkSprite) attacker.smirkSprite.visible = false; }, 3000);
             }
-            window.updateHPUI();
-        } else { 
-            // Odin Logic (Existing)
-            p.takeDamage(p.maxHP * 0.25, 2); // Assuming same self-dmg? No, Odin uses lightning
-            const pullBackPos = new THREE.Vector3(0, 450, 650), pullBackCenter = new THREE.Vector3(0, 40, 0), originalCamPos = camera.position.clone(); await new Promise(res => { let s = performance.now(); function up() { let pv = Math.min(1, (performance.now() - s) / 800); camera.position.lerpVectors(originalCamPos, pullBackPos, pv); camera.lookAt(pullBackCenter); if (pv < 1) requestAnimationFrame(up); else res(); } up(); }); await sleep(300); for (let i = 0; i < 8; i++) { targets.forEach(t => { const sY = t.group.position.clone().add(new THREE.Vector3((Math.random()-0.5)*30, 500, (Math.random()-0.5)*30)); activeLightnings.push(new OptimizedLightningBolt(sY, t.group.position)); }); SoundEngine.play('magic'); await sleep(150); } await sleep(400); targets.forEach(t => calcDamage(p, t, 1, true)); await sleep(400); resetCamera();
-        } 
+            
+            // Check Block
+            if (target && target.action.card === 4) {
+                 SoundEngine.play('ding');
+                 spawnDamageNumber(target, TRANSLATIONS[currentLang].logBlock, "#ffff00");
+                 showMove(`[${target.getDisplayName()}] ${TRANSLATIONS[currentLang].logBlock}!`);
+                 // Blocked, so no swap
+            } else if (target) {
+                 // Swap HP
+                 const myHP = attacker.hp;
+                 const targetHP = target.hp;
+                 attacker.hp = targetHP;
+                 target.hp = myHP;
+                 
+                 // Visuals
+                 SoundEngine.play('magic');
+                 spawnDamageNumber(attacker, "HP SWAP!", "#00ff00");
+                 spawnDamageNumber(target, "HP SWAP!", "#00ff00");
+                 showMove("HP 交換成功！！");
+                 attacker.updateLabel();
+                 target.updateLabel();
+                 window.updateHPUI();
+            }
+        } else {
+            // Fail
+            if (attacker.sweatSprite) {
+                attacker.sweatSprite.visible = true;
+                setTimeout(() => { if(attacker.sweatSprite) attacker.sweatSprite.visible = false; }, 3000);
+            }
+            SoundEngine.play('bonk'); // Fail sound
+            showMove("HP 交換失敗！！");
+        }
+        await sleep(1500);
     }
     
     async function performPhysicalSuper(attacker, target) { SoundEngine.play('super'); const op = attacker.group.position.clone(); if (!target) return; const tp = target.group.position.clone(); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 15.0; const vec = tp.clone().sub(op).normalize(); const behindPos = tp.clone().add(vec.clone().multiplyScalar(40)); const hitBackPos = tp.clone().add(vec.clone().multiplyScalar(5)); await move(attacker.group, behindPos, 250); calcDamage(attacker, target, 0, true); createExplosion(tp, 1.5); SoundEngine.play('hit'); await sleep(100); await move(attacker.group, hitBackPos, 200); calcDamage(attacker, target, 0, true, true); SoundEngine.play('hit'); await move(attacker.group, behindPos, 200); await sleep(100); const frontPos = tp.clone().sub(vec.clone().multiplyScalar(40)); await move(attacker.group, frontPos, 250); calcDamage(attacker, target, 0, true); SoundEngine.play('hit'); createExplosion(tp, 1.5); await sleep(100); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, op, 500); } else { for (let i = 0; i < 3; i++) { const strikePos = tp.clone().add(op.clone().sub(tp).normalize().multiplyScalar(40)); await move(attacker.group, strikePos, 150); calcDamage(attacker, target, 0, true, i > 0); await sleep(100); } await move(attacker.group, op, 400); } }
@@ -1859,8 +1956,19 @@
                 window.updateHPUI();
 
                 if (isR) { if (t?.alive) { await focusOnAction(p, t, 600); p.face(t.group.position); await performPhysicalSuper(p, t); } } 
-                else { p.face(new THREE.Vector3(0,0,0)); await performLightningStorm(p); }
-                // Removed post-execution reset
+                else {
+                    // Blue Ult
+                    if (p.type === 'Loki') {
+                        // Loki's New HP Swap Ult
+                        await focusOnAction(p, t, 600);
+                        if(t) p.face(t.group.position);
+                        await performLokiBlueUlt(p, t);
+                    } else {
+                        // Odin's Lightning Storm
+                        p.face(new THREE.Vector3(0,0,0)); 
+                        await performLightningStorm(p); 
+                    }
+                }
             } 
             else if (cid >= 0 && cid < 2) { 
                 if (t && t.alive) { 
@@ -2148,7 +2256,6 @@
         const p = players[myPlayerIndex]; if (!p || !p.alive) return;
         const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((x - rect.left) / rect.width) * 2 - 1; mouse.y = -((y - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera); 
         
-        // --- FIX: USE EXPLICIT 'enemy' variable ---
         const chars = players.filter(function(enemy) {
             return enemy && enemy.id !== myPlayerIndex && enemy.alive;
         }).map(function(enemy) {
@@ -2251,6 +2358,20 @@
             }
         }
         
+        // EMOJI Animation
+        if (p.alive) {
+            if (p.smirkSprite && p.smirkSprite.visible) {
+                 const s = 15 + Math.sin(Date.now() * 0.01) * 3;
+                 p.smirkSprite.scale.set(s, s, 1);
+                 p.smirkSprite.rotation.z = Math.sin(Date.now() * 0.01) * 0.2;
+            }
+            if (p.sweatSprite && p.sweatSprite.visible) {
+                 const s = 15 + Math.sin(Date.now() * 0.005) * 1;
+                 p.sweatSprite.scale.set(s, s, 1);
+                 p.sweatSprite.position.y = 8 - Math.abs(Math.sin(Date.now() * 0.005)) * 1; // Drip effect
+            }
+        }
+
         } }); renderer.render(scene, camera); } 
     }
 
