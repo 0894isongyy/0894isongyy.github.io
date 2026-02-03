@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.9)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.10)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -325,9 +325,9 @@
             display: flex;
             flex-direction: row;
             gap: 10px;
-            z-index: 4000; 
+            z-index: 4000; /* Increased Z-Index to stay above other layers */
             align-items: center;
-            pointer-events: auto;
+            pointer-events: auto; /* CRITICAL FIX: Enable clicks on container */
         }
 
         .control-btn {
@@ -343,7 +343,7 @@
             justify-content: center; 
             align-items: center;
             transition: all 0.2s;
-            pointer-events: auto;
+            pointer-events: auto; /* CRITICAL FIX: Enable clicks on buttons */
         }
         .control-btn:hover { transform: scale(1.1); background: var(--primary-gold); color: #000; }
         
@@ -461,7 +461,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.9</div>
+        <div class="version-text">版本 23.10</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -866,7 +866,7 @@
         midiToFreq(m){return 440*Math.pow(2,(m-69)/12);},
         scheduleNote(beatIndex){
             if(!this.isPlayingBGM)return;
-            const loopLen=64; const curBeat=beatIndex%loopLen; const beatDur=60/155;
+            const loopLen=64; const curBeat=beatIndex%loopLen; const beatDur=60/165;
             const notes=this.melodyA.filter(n=>Math.abs(n.t-curBeat)<0.01);
             notes.forEach(note=>{
                 const osc=this.ctx.createOscillator();const gain=this.ctx.createGain();
@@ -1448,12 +1448,7 @@
             const t = TRANSLATIONS[currentLang]; 
             
             if (!this.alive) { 
-                ctx.fillStyle = 'rgba(0,0,0,0.6)'; 
-                ctx.fillRect(50, 40, 412, 160); 
-                ctx.font = 'bold 80px Arial'; 
-                ctx.textAlign = 'center'; 
-                ctx.fillStyle = '#ff99cc'; 
-                ctx.fillText(t.dead, 256, 150); 
+                // Hide bars when dead. Draw nothing.
                 this.uiTexture.needsUpdate = true; 
                 return; 
             } 
@@ -1834,29 +1829,41 @@
             const survivors = players.filter(p => p.alive);
             if (survivors.length <= 1) {
                 let winner = survivors.length > 0 ? survivors[0] : null; const t = TRANSLATIONS[currentLang];
-                if (winner) { matchScores[winner.id] = (matchScores[winner.id] || 0) + 1; players.forEach(p => p.refreshLabel()); }
+                if (winner) { 
+                    matchScores[winner.id] = (matchScores[winner.id] || 0) + 1; 
+                    players.forEach(p => p.refreshLabel()); 
+                }
+                
+                // Match Win Condition
                 if (winner && matchScores[winner.id] >= targetWins) {
-                    showMsg(t.finalVictory.replace('{name}', winner.getDisplayName()), true); // Inject Winner Name
+                    showMsg(t.finalVictory.replace('{name}', winner.getDisplayName()), true); 
                     if (isMultiplayer && window.Online.isHost) window.Network.broadcast({ type: 'GAME_OVER', msg: t.finalVictory.replace('{name}', winner.getDisplayName()), isFinal: true, winnerName: winner.getDisplayName(), scores: matchScores });
                 } else {
+                    // Round Win Condition
                     const wName = winner ? winner.getDisplayName() : "Draw";
+                    
                     if (isMultiplayer && window.Online.isHost) {
+                        // Host Logic for Round End
+                        startRoundTransition(wName); // Show text to Host
+                        
                         window.Network.broadcast({ type: 'GAME_OVER', isFinal: false, autoRestart: true, winnerName: wName, scores: matchScores });
+                        
+                        // Cleanup sequence
                         setTimeout(() => { 
-                            // Add cleanup overlay
                             const cleanupMsg = document.getElementById('cleanup-msg');
                             if(cleanupMsg) cleanupMsg.classList.add('active');
-                            window.Network.broadcast({ type: 'SHOW_CLEANUP' }); // Broadcast cleanup
+                            window.Network.broadcast({ type: 'SHOW_CLEANUP' }); 
                             
                             setTimeout(() => {
                                 if(gameState !== 'IDLE') {
                                     window.Network.hostStartGame(); 
                                     if(cleanupMsg) cleanupMsg.classList.remove('active');
-                                    window.Network.broadcast({ type: 'HIDE_CLEANUP' }); // Broadcast hide cleanup
+                                    window.Network.broadcast({ type: 'HIDE_CLEANUP' }); 
                                 }
-                            }, 3000); // 3 seconds cleanup time
+                            }, 3000); 
                         }, 5000);
                     } else if (!isMultiplayer) { 
+                        // Single Player Logic
                         startRoundTransition(wName); 
                         setTimeout(() => {
                             const cleanupMsg = document.getElementById('cleanup-msg');
