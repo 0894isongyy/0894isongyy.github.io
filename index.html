@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.23)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.31)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -490,7 +490,7 @@
         <img src="pignarok_bg.jpg" class="menu-bg-pig" alt="Pig Background">
         <h1 id="menu-title">豬神黃昏</h1>
         <div class="sub-title">PIGNAROK ARENA</div>
-        <div class="version-text">版本 23.23</div>
+        <div class="version-text">版本 23.31</div>
         <div class="lang-container">
             <button id="lang-zh" class="btn-lang active" onclick="window.setLang('zh-TW')">中文</button>
             <button id="lang-en" class="btn-lang" onclick="window.setLang('en-US')">ENG</button>
@@ -1543,9 +1543,16 @@
             const t = TRANSLATIONS[currentLang]; 
             
             if (!this.alive) { 
-                // Hide bars when dead. Draw nothing.
-                this.uiTexture.needsUpdate = true; 
-                return; 
+                // Draw background
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(50, 40, 412, 160);
+                // Draw Text
+                ctx.font = 'bold 60px "Microsoft JhengHei", Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ff3333';
+                ctx.fillText(t.dead, 256, 130);
+                this.uiTexture.needsUpdate = true;
+                return;
             } 
             const r = this.rage, u = Math.floor(Math.max(r.red, r.blue)); 
             
@@ -1636,7 +1643,7 @@
         if (isSuper) createExplosion(t.group.position.clone().add(new THREE.Vector3(0, 15, 0)), 2.5); 
         else { 
             if (type === 0 && t.action.card === 2) { 
-                if (t.type === 'Loki') return; 
+                if (t.type === 'Loki') return; // Loki's Magnet handled in performAttack
                 loseRage(a, true); 
                 let counterDmg = 80; // Counter Dmg 80
                 a.takeDamage(counterDmg, 0, t.group.position); 
@@ -1660,27 +1667,28 @@
             SoundEngine.play('ding'); 
             spawnDamageNumber(t, txt.logBlock, "#ffff00"); // Yellow BLOCK text
             
-            // 傷害減免計算 (75% reduction -> take 25% dmg)
-            let reducedDmg = Math.floor(dmg * 0.25);
+            // 傷害減免計算 (80% reduction -> take 20% dmg)
+            // UPDATED: Changed from 0.25 to 0.20
+            let reducedDmg = Math.floor(dmg * 0.20);
+            
             // Apply reduced damage
-            loseRage(t, type === 0); 
             t.takeDamage(reducedDmg, type, a.group.position);
             
-            // --- FIX: SMART BLOCK RAGE GAIN ---
-            // If blocker has Blue Rage, add Blue.
-            // If blocker has Red Rage, add Red.
-            // If blocker has 0 Rage, add based on incoming attack type (Phys -> Red, Mag -> Blue).
-            let isRedGain = true;
-            if (t.rage.blue > 0) isRedGain = false;
-            else if (t.rage.red > 0) isRedGain = true;
-            else isRedGain = (type === 0);
-            
-            gainRage(t, isRedGain, 18); 
+            // --- FIX: NO RAGE FOR DEFENDER ON BLOCK ---
+            // gainRage(t, isRedGain, 18);  <-- REMOVED
 
             // Show red damage number slightly delayed or offset
             setTimeout(() => spawnDamageNumber(t, reducedDmg), 200);
 
-            showMove(`[${t.getDisplayName()}] ${txt.logBlock}!`); updateHPUI(); return; 
+            showMove(`[${t.getDisplayName()}] ${txt.logBlock}!`); updateHPUI(); 
+            
+            // --- NEW: Attacker gets half rage if blocked (Phys only, non-super) ---
+            if (!isSuper && type === 0) {
+                 gainRage(a, true, 17); // Half of 35
+            }
+            // Magic attacks (type === 1) blocked -> No Rage for Attacker (Default behavior as no gainRage here)
+            
+            return; 
         } 
         loseRage(t, type === 0); t.takeDamage(dmg, type, a.group.position); spawnDamageNumber(t, dmg);
         let skillName = isSuper ? "奧義" : (type === 0 ? "物理攻擊" : "魔法攻擊");
@@ -1735,9 +1743,6 @@
                      attacker.sweatSprite.visible = true;
                      setTimeout(() => { if(attacker.sweatSprite) attacker.sweatSprite.visible = false; }, 2000);
                  }
-                 // Mark as failed splash in userData so we check later? 
-                 // Or just handle splash logic here?
-                 // Actually, let's store a flag on attacker for this specific action instance
                  attacker.group.userData.splashFailed = true;
              }
         } else {
@@ -1745,9 +1750,70 @@
         }
 
         if (type === 0 && target.action.card === 2 && target.type === 'Odin') { const strikePos = tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)); await move(attacker.group, strikePos, 200); SoundEngine.play('magic'); target.group.visible = false; showMove("Spank!"); const behindPos = attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45)); target.group.position.copy(behindPos); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; hideMove(); await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
-        if (type === 0 && target.action.card === 2 && target.type === 'Loki') { const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); if (victims.length >= 1) { const victim = victims[Math.floor(Math.random()*victims.length)]; showMove("Swap!"); await sleep(800); const lokiOrigPos = target.group.position.clone(), victimOrigPos = victim.group.position.clone(); const magnet = createMagnetModel(); magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 15, 10)); scene.add(magnet); SoundEngine.play('magic'); showMove("!!!"); const backDir = target.group.position.clone().sub(attacker.group.position).normalize(); const backPos = lokiOrigPos.clone().add(backDir.multiplyScalar(40)); await Promise.all([move(victim.group, lokiOrigPos, 1200), move(target.group, backPos, 1200)]); hideMove(); const strikePos = lokiOrigPos.clone().add(orig.clone().sub(lokiOrigPos).normalize().multiplyScalar(45)); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 10.0; await sleep(600); await move(attacker.group, strikePos, 150); } else { await move(attacker.group, strikePos, 250); attacker.weaponGroup.rotation.z = 0.8; } SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); loseRage(attacker, true); 
-        let dmg = (attacker.type === 'Loki') ? 60 : 80; // FIX: Base on attacker
-        victim.takeDamage(dmg, 0, attacker.group.position); spawnDamageNumber(victim, dmg); await sleep(500); if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; await move(attacker.group, orig, 500); scene.remove(magnet); await Promise.all([move(target.group, lokiOrigPos, 1200), move(victim.group, victimOrigPos, 1200)]); return; } } 
+        
+        // --- NEW LOKI MAGNET LOGIC (Magnet flies to victim, Attacker hits victim) ---
+        if (type === 0 && target.action.card === 2 && target.type === 'Loki') { 
+            const victims = players.filter(p => p && p.alive && p.id !== target.id && p.id !== attacker.id); 
+            
+            showMove("Magnet!"); 
+            await sleep(800); 
+            const magnet = createMagnetModel(); 
+            magnet.position.copy(target.group.position).add(new THREE.Vector3(0, 40, 0));
+            scene.add(magnet);
+            SoundEngine.play('magic');
+
+            if (victims.length >= 1) { 
+                const victim = victims[Math.floor(Math.random()*victims.length)]; 
+                
+                // 1. Magnet flies to Victim
+                await move(magnet, victim.group.position.clone().add(new THREE.Vector3(0, 40, 0)), 600);
+                
+                // 2. Attacker moves to Victim
+                const vPos = victim.group.position.clone();
+                const strikePos = vPos.clone().add(orig.clone().sub(vPos).normalize().multiplyScalar(45));
+                
+                attacker.face(vPos);
+                
+                if (attacker.type === 'Loki') { 
+                    attacker.ballRotationMultiplier = 10.0; 
+                    await sleep(600); 
+                    await move(attacker.group, strikePos, 150); 
+                } else { 
+                    await move(attacker.group, strikePos, 250); 
+                    attacker.weaponGroup.rotation.z = 0.8; 
+                } 
+                
+                SoundEngine.play(attacker.type === 'Loki' ? 'hit' : 'slash'); 
+                loseRage(attacker, true); 
+                
+                let dmg = (attacker.type === 'Loki') ? 60 : 80; 
+                victim.takeDamage(dmg, 0, attacker.group.position); 
+                spawnDamageNumber(victim, dmg); 
+                showMove("Redirected!");
+                
+                await sleep(500); 
+                
+                if (attacker.type === 'Odin') attacker.weaponGroup.rotation.z = 0; 
+                if (attacker.type === 'Loki') attacker.ballRotationMultiplier = 1.0; 
+                
+                // 3. Return positions
+                await Promise.all([
+                    move(attacker.group, orig, 500),
+                    move(magnet, target.group.position.clone().add(new THREE.Vector3(0, 40, 0)), 600)
+                ]);
+                
+                scene.remove(magnet); 
+                return; 
+            } else {
+                // FALLBACK: No victims (1v1 situation)
+                // Just animate magnet failing
+                await move(magnet, target.group.position.clone().add(new THREE.Vector3(0, 80, 0)), 300);
+                showMove("無目標！");
+                await sleep(500);
+                scene.remove(magnet);
+                // Fallthrough to normal damage below...
+            }
+        } 
         
         if (type === 0) { 
              // ... Existing Melee Code ...
@@ -1876,19 +1942,77 @@
         await sleep(1500);
     }
     
-    async function performPhysicalSuper(attacker, target) { SoundEngine.play('super'); const op = attacker.group.position.clone(); if (!target) return; const tp = target.group.position.clone(); if (attacker.type === 'Loki') { attacker.ballRotationMultiplier = 15.0; const vec = tp.clone().sub(op).normalize(); const behindPos = tp.clone().add(vec.clone().multiplyScalar(40)); const hitBackPos = tp.clone().add(vec.clone().multiplyScalar(5)); await move(attacker.group, behindPos, 250); calcDamage(attacker, target, 0, true); createExplosion(tp, 1.5); SoundEngine.play('hit'); await sleep(100); await move(attacker.group, hitBackPos, 200); calcDamage(attacker, target, 0, true, true); SoundEngine.play('hit'); await move(attacker.group, behindPos, 200); await sleep(100); const frontPos = tp.clone().sub(vec.clone().multiplyScalar(40)); await move(attacker.group, frontPos, 250); calcDamage(attacker, target, 0, true); SoundEngine.play('hit'); createExplosion(tp, 1.5); await sleep(100); attacker.ballRotationMultiplier = 1.0; await move(attacker.group, op, 500); } else { for (let i = 0; i < 3; i++) { const strikePos = tp.clone().add(op.clone().sub(tp).normalize().multiplyScalar(40)); await move(attacker.group, strikePos, 150); calcDamage(attacker, target, 0, true, i > 0); await sleep(100); } await move(attacker.group, op, 400); } }
+    async function performPhysicalSuper(attacker, target) { 
+        SoundEngine.play('super'); 
+        const op = attacker.group.position.clone(); 
+        if (!target) return; 
+        const tp = target.group.position.clone(); 
+        
+        if (attacker.type === 'Loki') { 
+            attacker.ballRotationMultiplier = 15.0; 
+            const vec = tp.clone().sub(op).normalize(); 
+            const behindPos = tp.clone().add(vec.clone().multiplyScalar(40)); 
+            const hitBackPos = tp.clone().add(vec.clone().multiplyScalar(5)); 
+            
+            await move(attacker.group, behindPos, 250); 
+            calcDamage(attacker, target, 0, true); 
+            createExplosion(tp, 1.5); 
+            SoundEngine.play('hit'); 
+            await sleep(100); 
+            await move(attacker.group, hitBackPos, 200); 
+            calcDamage(attacker, target, 0, true, true); 
+            SoundEngine.play('hit'); 
+            await move(attacker.group, behindPos, 200); 
+            await sleep(100); 
+            const frontPos = tp.clone().sub(vec.clone().multiplyScalar(40)); 
+            await move(attacker.group, frontPos, 250); 
+            calcDamage(attacker, target, 0, true); 
+            SoundEngine.play('hit'); 
+            createExplosion(tp, 1.5); 
+            await sleep(100); 
+            attacker.ballRotationMultiplier = 1.0; 
+            await move(attacker.group, op, 500); 
+        } else { 
+            for (let i = 0; i < 3; i++) { 
+                const strikePos = tp.clone().add(op.clone().sub(tp).normalize().multiplyScalar(40)); 
+                await move(attacker.group, strikePos, 150); 
+                calcDamage(attacker, target, 0, true, i > 0); 
+                await sleep(100); 
+            } 
+            await move(attacker.group, op, 400); 
+            
+            // --- NEW: Odin Refund Logic (75% Red Rage) ---
+            // Only refund if target did NOT block (Card 4)
+            if (attacker.type === 'Odin') {
+                if (target && target.action.card !== 4) {
+                    gainRage(attacker, true, 75);
+                    spawnDamageNumber(attacker, "+75 Rage!", "#ff5555"); // Feedback
+                }
+            }
+        } 
+    }
 
     async function resolveActions() { 
-        // 修正：依選擇時間排序，奧義 > 其他
-        // Priority Change: Card 2 (Swap/Counter) is now 0 (First).
-        // 4 (Defend): 0, 3 (Reflect): 0, 2 (Swap): 0
-        // 5 (Ult): 1
-        // 0 (Melee): 2, 1 (Magic): 2
-        const pMap = { 4: 0, 3: 0, 2: 0, 5: 1, 0: 2, 1: 2 }; 
+        // 修正：依照指定順序排序
+        // Order: Ult(5) > Defend(4) > Counter(2-Odin) > Reflect(3) > Melee(0) > Magnet(2-Loki) > Magic(1)
+        
+        const getPrio = (p) => {
+            const c = p.action.card;
+            if (c === 5) return 10; // Ult
+            if (c === 4) return 20; // Defend
+            if (c === 2 && p.type === 'Odin') return 30; // Counter
+            if (c === 3) return 35; // Reflect
+            if (c === 2 && p.type === 'Loki') return 38; // Magnet (Moved slightly after Reflect, but BEFORE Melee logic execution if priority means visual order? No, Priority is execution order. Magnet needs to BE ACTIVE when Melee hits. So Magnet needs to run logic? No, Magnet is reactive inside performAttack. The priority here determines visual "Cast" order. Let's keep it near Reflect so player knows it's active.)
+            if (c === 0) return 40; // Melee
+            if (c === 1) return 70; // Magic
+            return 100;
+        };
+
         const q = players.filter(p => p && p.alive).sort((a, b) => {
-            const prioA = pMap[a.action.card] ?? 5;
-            const prioB = pMap[b.action.card] ?? 5;
+            const prioA = getPrio(a);
+            const prioB = getPrio(b);
             if (prioA !== prioB) return prioA - prioB;
+            // Time Breaker: Earlier timestamp (smaller value) goes first
             return a.action.selectionTime - b.action.selectionTime;
         });
 
@@ -1908,7 +2032,11 @@
             let targetName = t ? t.getDisplayName() : "";
             if (cid === 4) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[4]}!`;
             else if (cid === 3) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[3]}!`;
-            else if (cid === 2) skillText = `[${p.getDisplayName()}] ${CARD_NAMES[2]}!`;
+            else if (cid === 2) {
+                // FIXED: Use dynamic text based on actor type, not player's UI text
+                const skillName = (p.type === 'Loki') ? TRANSLATIONS[currentLang].cardNames.swap : TRANSLATIONS[currentLang].cardNames[2];
+                skillText = `[${p.getDisplayName()}] ${skillName}!`;
+            }
             else if (cid === 5) {
                 const isR = (p.id === 0) ? (playerRage.red >= 99) : (p.rage.red >= 99);
                 skillText = isR ? `[${p.getDisplayName()}] ${TRANSLATIONS[currentLang].tutCardNames[5]} @ ${targetName}!` : `[${p.getDisplayName()}] ${TRANSLATIONS[currentLang].tutCardNames[6]}!`;
@@ -2094,9 +2222,7 @@
         if (gameState !== 'WAITING') return;
         
         // FIX: Allow AI to think from start (10s) until 4s.
-        // Previously: if (timeLeft < (TURN_TIME - 6)) return; was wrong for TURN_TIME=10
         if (timeLeft > (TURN_TIME - 1)) return; // Short delay (start at 9)
-        
         if (timeLeft <= 4) return; // Stop thinking at 4s
 
         players.forEach((p, idx) => {
@@ -2128,15 +2254,22 @@
                     choice = 0;
                     if (maxRage >= 99 && Math.random() < 0.9) choice = 5;
                     else { 
-                        const isRed = r.red >= r.blue; const hasRage = maxRage > 20; 
-                        if (hasRage) { 
-                            const roll = Math.random(); 
-                            if (isRed) choice = roll < 0.6 ? 0 : (roll < 0.9 ? 2 : 4); 
-                            else choice = roll < 0.6 ? 1 : (roll < 0.9 ? 3 : 4); 
-                        } else { 
-                            const roll = Math.random(); 
-                            choice = roll < 0.4 ? 0 : (roll < 0.8 ? 1 : 4); 
-                        } 
+                        // UPDATED CPU LOGIC TO ALLOW LOKI TO USE MAGNET (Card 2)
+                        const isLoki = (p.type === 'Loki');
+                        if (isLoki) {
+                             // Loki: Magic(1), Magnet(2), Reflect(3), Defend(4), Melee(0)
+                             const roll = Math.random();
+                             if (roll < 0.4) choice = 1; // Magic 40%
+                             else if (roll < 0.6) choice = 2; // Magnet 20%
+                             else if (roll < 0.75) choice = 3; // Reflect 15%
+                             else if (roll < 0.85) choice = 0; // Melee 10%
+                             else choice = 4; // Defend 15%
+                        } else {
+                             // Odin (Original Logic)
+                             const isRed = r.red >= r.blue;
+                             if (isRed) choice = Math.random() < 0.6 ? 0 : (Math.random() < 0.9 ? 2 : 4); 
+                             else choice = Math.random() < 0.6 ? 1 : (Math.random() < 0.9 ? 3 : 4); 
+                        }
                     }
                     if (choice === 4 && p.fatigue >= 100) choice = (r.red >= r.blue) ? 0 : 1;
                     
@@ -2191,6 +2324,14 @@
                 if (i === myPlayerIndex) selectedTargetId = defaultTarget;
             } else {
                  if (i === myPlayerIndex) selectedTargetId = -1; 
+            }
+
+            // --- AUTO SELECT ULTIMATE IF RAGE FULL ---
+            if (i === myPlayerIndex) {
+                const maxR = Math.max(p.rage.red, p.rage.blue);
+                if (maxR >= 99) {
+                    window.selectCard(5); 
+                }
             }
         });
         resetCamera(); window.updateHPUI(); 
