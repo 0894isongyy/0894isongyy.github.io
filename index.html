@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>豬神黃昏 Pignarok Arena (Ver 23.46 Fixed)</title>
+    <title>豬神黃昏 Pignarok Arena (Ver 23.46 Final)</title>
     <!-- 引入 PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -171,16 +171,16 @@
         }
 
         @keyframes breathe-purple {
-            0% { transform: translateX(-50%) scale(1); opacity: 0.8; text-shadow: 0 0 10px #800080; }
-            50% { transform: translateX(-50%) scale(1.05); opacity: 1; text-shadow: 0 0 20px #ff00ff; }
-            100% { transform: translateX(-50%) scale(1); opacity: 0.8; text-shadow: 0 0 10px #800080; }
+            0% { transform: translateX(-50%) scale(1); opacity: 0.8; text-shadow: 0 0 10px #ffffff; }
+            50% { transform: translateX(-50%) scale(1.05); opacity: 1; text-shadow: 0 0 20px #ffffff; }
+            100% { transform: translateX(-50%) scale(1); opacity: 0.8; text-shadow: 0 0 10px #ffffff; }
         }
 
         #tutorial-rage-hint {
             position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
             width: 90%; text-align: center; pointer-events: none; z-index: 45;
             display: none;
-            color: #e066ff;
+            color: #ffffff; /* White */
             font-size: 1.5rem;
             font-weight: 800;
             line-height: 1.5;
@@ -640,7 +640,7 @@
             charOdin: "奧丁", charLoki: "洛基",
             turnHint: "請選擇下方的卡牌並點選對手", ready: "準備中...",
             moveNames: ["物理攻擊", "魔法攻擊", "反擊", "魔法反射", "防禦", "終極奧義"],
-            cardNames: { 0: "ATK⚔️", 1: "MATK🪄", 2: "反擊🛡️", 3: "反射💎", 4: "防禦🧱", 5: "奧義🔥", swap: "磁鐵🧲" },
+            cardNames: { 0: "物攻⚔️", 1: "魔法🪄", 2: "反擊🛡️", 3: "反射💎", 4: "防禦🧱", 5: "奧義🔥", swap: "磁鐵🧲" },
             tutCardNames: { 5: "物奧🔥", 6: "魔奧⚡" },
             victory: "勝利！", gameOver: "回合結束", restart: "重新開始",
             finalVictory: "恭喜 {name} 成為豬林匹斯的王者！", finalMenu: "回到主選單",
@@ -651,13 +651,30 @@
             incomplete: "名稱或房號不完整", connError: "連線錯誤，請重試", hostLeft: "房主已離開", full: "房間已滿", connecting: "連線中...",
             aiAuto: "AI 代打", aiOn: "AI ON",
             cardDescs: {
-                0: "造成物理傷害，增加紅色怒氣",
-                1: "造成魔法傷害，增加藍色怒氣",
-                2: { "Odin": "受到物理攻擊時自動反擊", "Loki": "受到物理攻擊時與敵人交換位置" },
-                3: "反彈受到的魔法傷害",
+                0: {
+                    "Odin": "造成 ATK80 物理傷害(擊中對手 +35% 物理怒氣)",
+                    "Loki": "造成 ATK60 物理傷害(擊中對手 +35% 物理怒氣)",
+                    "default": "造成物理傷害"
+                },
+                1: {
+                    "Odin": "造成 MATK90 魔法傷害 (擊中對手 +35% 魔法怒氣)",
+                    "Loki": "造成 MATK80 魔法傷害並有 60%機率濺射另一對手(擊中對手 +35% 魔法怒氣)",
+                    "default": "造成魔法傷害"
+                },
+                2: { 
+                    "Odin": "進入反擊狀態，受到物理攻擊，自動反擊 ATK80 的傷害並自身免傷 (+17%怒氣)", 
+                    "Loki": "進入反擊狀態，受到物理攻擊，丟出磁鐵給隨機觀戰的對手並轉移傷害" 
+                },
+                3: "進入魔法反射狀態，該回合對手對你施放的魔法，會以 80%的傷害反射給對手 (奧義)",
                 4: "大幅減傷，但增加疲勞值",
-                5: { "Odin": "消耗全部怒氣，造成毀滅性連擊", "Loki": "70% 成功率與敵人交換血量 (HP Swap)！" },
-                6: { "Odin": "召喚雷霆風暴打擊所有敵人", "Loki": "70% 成功率與敵人交換血量！" } 
+                5: { 
+                    "Odin": "消耗全部怒氣的毀減性連擊，擊中沒防禦的對手會自動回復 83% 的怒氣", 
+                    "Loki": "消耗全部怒氣的毀減性連擊" 
+                },
+                6: { 
+                    "Odin": "召喚雷電風暴打擊場上所有敵人 (AOE)", 
+                    "Loki": "與對指敵人互換 70% 生命值 (75% 成功率)" 
+                } 
             },
             logBlock: "格檔！", logCounter: "的反擊在奧義面前失效了！",
             logReflect: "的反射在奧義面前失效了！", logHit: "的攻擊！",
@@ -692,7 +709,7 @@
             charOdin: "Odin", charLoki: "Loki",
             turnHint: "Select a card below and tap an enemy", ready: "Ready...",
             moveNames: ["Melee", "Magic", "Counter", "Reflect", "Defend", "Ultimate"],
-            cardNames: { 0: "ATK⚔️", 1: "MATK🪄", 2: "Count🛡️", 3: "Refl💎", 4: "Def🧱", 5: "Ult🔥", swap: "Magnet🧲" },
+            cardNames: { 0: "Melee⚔️", 1: "Magic🪄", 2: "Count🛡️", 3: "Refl💎", 4: "Def🧱", 5: "Ult🔥", swap: "Magnet🧲" },
             tutCardNames: { 5: "Phys Ult🔥", 6: "Mag Ult⚡" },
             victory: "VICTORY!", gameOver: "GAME OVER", restart: "Play Again", finalVictory: "Congratulations {name}, the New King of Piglympus!", finalMenu: "Main Menu",
             swapSkill: "Magnet Swap", counterSkill: "Counter",
@@ -702,13 +719,30 @@
             incomplete: "Name or Code incomplete", connError: "Connection Error", hostLeft: "Host disconnected", full: "Room Full", connecting: "Connecting...",
             aiAuto: "AI Auto", aiOn: "AI ON",
             cardDescs: {
-                0: "Deals Physical DMG, builds Red Rage",
-                1: "Deals Magic DMG, builds Blue Rage",
-                2: { "Odin": "Counters Physical attacks automatically", "Loki": "Swaps position when hit by Physical attack" },
-                3: "Reflects Magic damage back",
+                0: {
+                    "Odin": "Deals 80 Phys DMG (+35% Red Rage)",
+                    "Loki": "Deals 60 Phys DMG (+35% Red Rage)",
+                    "default": "Deals Physical DMG"
+                },
+                1: {
+                    "Odin": "Deals 90 Magic DMG (+35% Blue Rage)",
+                    "Loki": "Deals 80 Magic DMG + 60% Splash chance (+35% Blue Rage)",
+                    "default": "Deals Magic DMG"
+                },
+                2: { 
+                    "Odin": "Counters Phys attacks with 80 DMG & Immunity (+17% Rage)", 
+                    "Loki": "Redirects Phys attack to random bystander (Magnet)" 
+                },
+                3: "Reflects 80% Magic damage back",
                 4: "Reduces damage significantly, adds Fatigue",
-                5: { "Odin": "Consumes Max Rage for devastating combo", "Loki": "70% Chance to Swap HP with enemy!" },
-                6: { "Odin": "Summons Lightning Storm on all enemies", "Loki": "70% Chance to Swap HP!" }
+                5: { 
+                    "Odin": "Consumes Max Rage for devastating combo, regains 83% Rage if hit undefended", 
+                    "Loki": "Consumes Max Rage for devastating combo" 
+                },
+                6: { 
+                    "Odin": "Summons Lightning Storm on all enemies (AOE)", 
+                    "Loki": "Swaps 70% HP with enemy (75% Chance)" 
+                }
             },
             logBlock: "Blocked", logCounter: "'s counter failed against Ultimate!",
             logReflect: "'s reflect failed against Ultimate!", logHit: "'s attack!",
@@ -750,6 +784,26 @@
         container.appendChild(btn);
     }
 
+    function setCardHTML(id, name, statLabel, val, color) {
+        const el = document.getElementById(id);
+        if(el) {
+            el.innerHTML = `
+                <div style="margin-bottom: 3px; font-size: 0.8rem;">${name}</div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
+                    <span style="color:${color}; font-size: 1.4rem; font-weight: 800;">${val}</span>
+                    <span style="color:${color}; font-size: 0.65rem; font-weight: bold; margin-top: 1px;">${statLabel}</span>
+                </div>
+            `;
+        }
+    }
+    
+    function setLargeTextCard(id, name) {
+        const el = document.getElementById(id);
+        if(el) {
+            el.innerHTML = `<div style="font-size: 1.35rem; font-weight: 800; line-height: 1.1;">${name}</div>`;
+        }
+    }
+
     window.updateText = function() {
         const t = TRANSLATIONS[currentLang];
         safeSetText('menu-title', t.title);
@@ -782,7 +836,10 @@
         safeSetText('lbl-join-odin', t.charOdin); safeSetText('lbl-join-loki', t.charLoki);
         safeSetText('lbl-tut-odin', t.charOdin); safeSetText('lbl-tut-loki', t.charLoki);
         safeSetText('turn-hint', t.turnHint);
-        safeSetText('card-3', t.cardNames[3]); safeSetText('defend-card', t.cardNames[4]);
+        
+        setLargeTextCard('card-3', t.cardNames[3]); 
+        setLargeTextCard('defend-card', t.cardNames[4]); 
+
         const aiBtn = document.getElementById('btn-auto-play'); if(aiBtn) aiBtn.innerText = isAutoPlay ? t.aiOn : t.aiAuto;
         const cleanupMsg = document.querySelector('#cleanup-msg h1'); if(cleanupMsg) cleanupMsg.innerText = t.cleanup;
         const tutHint = document.getElementById('tutorial-rage-hint');
@@ -791,34 +848,40 @@
         if (players.length > 0) {
             const p = players[myPlayerIndex]; 
             if(p) {
-                // Dynamic Card Labels based on Character
                 if (p.type === 'Odin') {
-                    safeSetText('card-0', `${t.cardNames[0]} 80`);
-                    safeSetText('card-1', `${t.cardNames[1]} 90`);
-                    safeSetText('slot-2-btn', `${t.cardNames[2]} 80`);
+                    setCardHTML('card-0', t.cardNames[0], 'ATK', 80, '#ffaa00');
+                    setCardHTML('card-1', t.cardNames[1], 'MATK', 90, '#55ccff');
+                    setLargeTextCard('slot-2-btn', t.cardNames[2]); 
                     CARD_NAMES[2] = t.counterSkill;
                 } else {
-                    safeSetText('card-0', `${t.cardNames[0]} 60`);
-                    safeSetText('card-1', `${t.cardNames[1]} 100`);
-                    safeSetText('slot-2-btn', t.cardNames.swap);
+                    setCardHTML('card-0', t.cardNames[0], 'ATK', 60, '#ffaa00');
+                    setCardHTML('card-1', t.cardNames[1], 'MATK', 80, '#55ccff');
+                    setLargeTextCard('slot-2-btn', t.cardNames.swap); 
                     CARD_NAMES[2] = t.swapSkill;
                 }
 
                 const defBtn = document.getElementById('defend-card');
-                if (defBtn) { if (p.fatigue >= 100) defBtn.innerText = t.tired; else defBtn.innerText = t.cardNames[4]; }
+                if (defBtn) { 
+                    if (p.fatigue >= 100) { 
+                        setLargeTextCard('defend-card', t.tired); 
+                        defBtn.classList.add('disabled');
+                    } else { 
+                        setLargeTextCard('defend-card', t.cardNames[4]); 
+                        defBtn.classList.remove('disabled');
+                    } 
+                }
                 
                 if(isTutorialMode) { 
-                    safeSetText('super-card', `${t.tutCardNames[5]} (3x)`); 
-                    safeSetText('super-card-2', `${t.tutCardNames[6]} (50%)`); 
+                    setLargeTextCard('super-card', t.tutCardNames[5]); 
+                    setLargeTextCard('super-card-2', t.tutCardNames[6]); 
                 } else { 
-                    safeSetText('super-card', t.cardNames[5]); 
+                    setLargeTextCard('super-card', t.cardNames[5]); 
                 }
                 players.forEach(pl => pl.refreshLabel());
                 safeSetText('player-name-display', p.getDisplayName());
             }
         } else {
-            // Default labels if no player (e.g. menu)
-            safeSetText('card-0', t.cardNames[0]); safeSetText('card-1', t.cardNames[1]);
+             // Defaults
         }
     };
     
@@ -890,7 +953,12 @@
 
     function showCardDescription(index) {
         const descEl = document.getElementById('card-description'); const t = TRANSLATIONS[currentLang]; const p = players[myPlayerIndex]; if (!p) return;
-        let desc = (index === 2 || index === 5) ? t.cardDescs[index][p.type] : (index === 6 ? t.cardDescs[6][p.type] : t.cardDescs[index]);
+        let desc = "";
+        if (typeof t.cardDescs[index] === 'object') {
+            desc = t.cardDescs[index][p.type] || t.cardDescs[index]['default'];
+        } else {
+            desc = t.cardDescs[index];
+        }
         if (descEl) { descEl.innerText = desc; descEl.style.opacity = 1; }
     }
     function hideCardDescription() { const el = document.getElementById('card-description'); if(el) el.style.opacity = 0; }
@@ -916,18 +984,18 @@
             if(fatLine) { fatLine.innerText = `${t.fatigue}: ${p.fatigue}%`; fatLine.style.color = p.fatigue >= 100 ? "#ff0000" : "#ffaa00"; }
             const curRage = Math.floor(Math.max(p.rage.red, p.rage.blue));
             if(rageLine) { rageLine.innerText = `${t.rage}: ${curRage}%`; rageLine.style.color = p.rage.red > p.rage.blue ? "#ff5555" : (p.rage.blue > p.rage.red ? "#55ccff" : "#ffaa00"); }
-            if (defBtn) { if (p.fatigue >= 100) { defBtn.classList.add('disabled'); defBtn.innerText = t.tired; } else { defBtn.classList.remove('disabled'); defBtn.innerText = t.cardNames[4]; } }
+            if (defBtn) { if (p.fatigue >= 100) { defBtn.classList.add('disabled'); setLargeTextCard('defend-card', t.tired); } else { defBtn.classList.remove('disabled'); setLargeTextCard('defend-card', t.cardNames[4]); } }
             if (superBtn) {
                 superBtn.className = "card super"; 
-                if (curRage >= 99) { superBtn.style.display = 'flex'; if (p.rage.blue > p.rage.red) { superBtn.classList.add('super-blue'); superBtn.innerText = t.cardNames[5]; } else { superBtn.classList.add('super-red'); superBtn.innerText = t.cardNames[5]; } } else { superBtn.style.display = 'none'; }
+                if (curRage >= 99) { superBtn.style.display = 'flex'; if (p.rage.blue > p.rage.red) { superBtn.classList.add('super-blue'); setLargeTextCard('super-card', t.cardNames[5]); } else { superBtn.classList.add('super-red'); setLargeTextCard('super-card', t.cardNames[5]); } } else { superBtn.style.display = 'none'; }
             }
         } else {
             const hpLine = document.getElementById('hp-line'), fatLine = document.getElementById('fatigue-line'), rageLine = document.getElementById('rage-line'), defBtn = document.getElementById('defend-card'), superBtn = document.getElementById('super-card'), superBtn2 = document.getElementById('super-card-2');
             if(hpLine) hpLine.innerText = `HP: ${p.hp}/${p.maxHP}`; if(fatLine) { fatLine.innerText = `${t.fatigue}: ${p.fatigue}%`; }
             const curRage = Math.floor(Math.max(p.rage.red, p.rage.blue)); if(rageLine) { rageLine.innerText = `${t.rage}: ${curRage}%`; }
-            if(defBtn) defBtn.innerText = t.cardNames[4];
-            if (superBtn) { if (p.rage.red >= 100) { superBtn.style.display = 'flex'; superBtn.className = "card super super-red"; superBtn.innerText = t.tutCardNames[5]; } else { superBtn.style.display = 'none'; } }
-            if (superBtn2) { if (p.rage.blue >= 100) { superBtn2.style.display = 'flex'; superBtn2.className = "card super super-blue"; superBtn2.innerText = t.tutCardNames[6]; } else { superBtn2.style.display = 'none'; } }
+            if(defBtn) setLargeTextCard('defend-card', t.cardNames[4]);
+            if (superBtn) { if (p.rage.red >= 100) { superBtn.style.display = 'flex'; superBtn.className = "card super super-red"; setLargeTextCard('super-card', t.tutCardNames[5]); } else { superBtn.style.display = 'none'; } }
+            if (superBtn2) { if (p.rage.blue >= 100) { superBtn2.style.display = 'flex'; superBtn2.className = "card super super-blue"; setLargeTextCard('super-card-2', t.tutCardNames[6]); } else { superBtn2.style.display = 'none'; } }
         }
         players.forEach(p => { if (p.selectionRing) p.selectionRing.visible = (selectedTargetId === p.id); if (p.updateLabel) p.updateLabel(); if (p.brokenShieldIcon) { p.brokenShieldIcon.visible = p.showBrokenShield; } });
         if (window.UI) window.UI.updateScoreboard(); 
@@ -1099,7 +1167,7 @@
 
     function calcDamage(a, t, type, isSuper = false, skipFatigue = false) { 
         if (!t || !t.alive) return; const txt = TRANSLATIONS[currentLang]; 
-        let dmg = (a.type === 'Loki') ? (isSuper ? (type === 0 ? 70 : t.maxHP * 0.5) : (type === 0 ? 60 : 100)) : (isSuper ? (type === 0 ? 60 : t.maxHP * 0.5) : (type === 0 ? 80 : 90));
+        let dmg = (a.type === 'Loki') ? (isSuper ? (type === 0 ? 70 : t.maxHP * 0.5) : (type === 0 ? 60 : 80)) : (isSuper ? (type === 0 ? 60 : t.maxHP * 0.5) : (type === 0 ? 80 : 90));
         if (isSuper) createExplosion(t.group.position.clone().add(new THREE.Vector3(0, 15, 0)), 2.5); 
         else { 
             if (type === 0 && t.action.card === 2) { if (t.type === 'Loki') return; loseRage(a, true); a.takeDamage(80, 0, t.group.position); spawnDamageNumber(a, 80); showMove(`[${t.getDisplayName()}] 反擊！ -> ${a.getDisplayName()} 80 Dmg!`); if (t.type === 'Odin') gainRage(t, true, 20); return; } 
@@ -1120,7 +1188,7 @@
     
     async function performAttack(attacker, target, type) { 
         if (!attacker || !target) return; const tp = target.group.position.clone(), orig = attacker.group.position.clone(); 
-        if (type === 1 && attacker.type === 'Loki') { if (Math.random() < 0.5) { attacker.smirkSprite.visible = true; setTimeout(() => { if(attacker.smirkSprite) attacker.smirkSprite.visible = false; }, 2000); attacker.group.userData.splashFailed = false; } else { attacker.sweatSprite.visible = true; setTimeout(() => { if(attacker.sweatSprite) attacker.sweatSprite.visible = false; }, 2000); attacker.group.userData.splashFailed = true; } } 
+        if (type === 1 && attacker.type === 'Loki') { if (Math.random() < 0.6) { attacker.smirkSprite.visible = true; setTimeout(() => { if(attacker.smirkSprite) attacker.smirkSprite.visible = false; }, 2000); attacker.group.userData.splashFailed = false; } else { attacker.sweatSprite.visible = true; setTimeout(() => { if(attacker.sweatSprite) attacker.sweatSprite.visible = false; }, 2000); attacker.group.userData.splashFailed = true; } } 
         else { if(attacker.group.userData) attacker.group.userData.splashFailed = false; }
         if (type === 0 && target.action.card === 2 && target.type === 'Odin') { await move(attacker.group, tp.clone().add(orig.clone().sub(tp).normalize().multiplyScalar(45)), 200); SoundEngine.play('magic'); target.group.visible = false; target.group.position.copy(attacker.group.position.clone().add(target.group.position.clone().sub(attacker.group.position).normalize().multiplyScalar(-45))); target.face(attacker.group.position); target.group.visible = true; target.weaponGroup.rotation.z = 1.8; SoundEngine.play('counter'); await sleep(300); calcDamage(attacker, target, 0); gainRage(target, true, 20); await sleep(500); target.weaponGroup.rotation.z = 0; hideMove(); await move(attacker.group, orig, 400); target.group.position.copy(tp); target.face(attacker.group.position); return; } 
         if (type === 0 && target.action.card === 2 && target.type === 'Loki') { 
@@ -1146,7 +1214,7 @@
     }
 
     async function performLokiBlueUlt(attacker, target) {
-        if (Math.random() < 0.7) {
+        if (Math.random() < 0.75) {
             attacker.smirkSprite.visible = true; setTimeout(() => { if(attacker.smirkSprite) attacker.smirkSprite.visible = false; }, 3000);
             if (target && target.action.card === 4) { SoundEngine.play('ding'); spawnDamageNumber(target, TRANSLATIONS[currentLang].logBlock, "#ffff00"); showMove(`[${target.getDisplayName()}] ${TRANSLATIONS[currentLang].logBlock}!`); } 
             else if (target) { const mH = attacker.hp; attacker.hp = target.hp; target.hp = mH; SoundEngine.play('magic'); spawnDamageNumber(attacker, "HP SWAP!", "#00ff00"); spawnDamageNumber(target, "HP SWAP!", "#00ff00"); showMove(TRANSLATIONS[currentLang].hpSwapSuccess); attacker.updateLabel(); target.updateLabel(); window.updateHPUI(); }
@@ -1174,7 +1242,12 @@
             if (isTutorialMode && p.id === myPlayerIndex) {
                  const tl = TRANSLATIONS[currentLang]; const hint = document.getElementById('tutorial-rage-hint'); if(hint) {
                      let name = (cid === 5 ? tl.tutCardNames[5] : (cid === 6 ? tl.tutCardNames[6] : (cid === 2 ? (p.type === 'Loki' ? tl.cardNames.swap : tl.cardNames[2]) : tl.cardNames[cid])));
-                     let desc = (typeof tl.cardDescs[cid] === 'object') ? tl.cardDescs[cid][p.type] : tl.cardDescs[cid];
+                     let desc = "";
+                     if (typeof tl.cardDescs[cid] === 'object') {
+                         desc = tl.cardDescs[cid][p.type] || tl.cardDescs[cid]['default'];
+                     } else {
+                         desc = tl.cardDescs[cid];
+                     }
                      hint.innerHTML = `<span style="color:#ffcc00; font-size:1.2rem;">${name}</span><br><span style="font-size:1rem; color:#fff;">${desc}</span>`;
                  }
             }
@@ -1241,7 +1314,31 @@
                  const threats = players.filter(enemy => enemy.alive && enemy.id !== idx && enemy.action.target === idx); let chosenT = p.action.target; 
                  if (chosenT === -1 || Math.random() < 0.4 || threats.length > 0) { const fTs = players.filter(o => o.id !== idx && o.alive && o.fatigue >= 100); if (fTs.length > 0 && Math.random() < 0.85) chosenT = fTs[Math.floor(Math.random() * fTs.length)].id; else if (threats.length > 0 && Math.random() < 0.7) chosenT = threats[Math.floor(Math.random() * threats.length)].id; else { const vTs = players.filter(o => o.id !== idx && o.alive); if (vTs.length > 0) chosenT = vTs[Math.floor(Math.random() * vTs.length)].id; } }
                  if (chosenT !== -1 && players[chosenT]) { p.action.target = chosenT; p.face(players[chosenT].group.position); }
-                 let choice = p.action.card; if (choice === -1 || Math.random() < 0.3) { const maxR = Math.max(p.rage.red, p.rage.blue); if (maxR >= 99 && Math.random() < 0.9) { choice = 5; if (p.type === 'Loki' && p.rage.blue > p.rage.red && players[p.action.target]?.hp <= p.hp) choice = 1; } else { if (p.type === 'Loki') { if (p.rage.blue > p.rage.red && threats.length >= 2) choice = 2; else { const roll = Math.random(); if (roll < 0.4) choice = 1; else if (roll < 0.6) choice = 2; else if (roll < 0.75) choice = 3; else choice = 4; } } else { const isRed = p.rage.red >= p.rage.blue; choice = Math.random() < 0.6 ? (isRed ? 0 : 1) : (Math.random() < 0.9 ? (isRed ? 2 : 3) : 4); } } if (choice === 4 && p.fatigue >= 100) choice = (p.rage.red >= p.rage.blue) ? 0 : 1; if (threats.length === 0 && !players.some(pl => pl.alive && pl.id !== idx && pl.rage.blue >= 99)) if (choice === 4 || choice === 2 || choice === 3) choice = (p.rage.red >= p.rage.blue) ? 0 : 1; p.action.card = choice; p.action.selectionTime = Date.now(); }
+                 let choice = p.action.card; if (choice === -1 || Math.random() < 0.3) { 
+                     const maxR = Math.max(p.rage.red, p.rage.blue); 
+                     if (maxR >= 99 && Math.random() < 0.9) { 
+                         choice = 5; 
+                         if (p.type === 'Loki' && p.rage.blue > p.rage.red) { 
+                             // LOKI BLUE ULT LOGIC
+                             const enemies = players.filter(e => e.id !== idx && e.alive);
+                             const healthyEnemies = enemies.filter(e => e.hp > p.hp);
+                             if (healthyEnemies.length > 0) {
+                                 // Found someone with more HP, target them
+                                 const target = healthyEnemies[0];
+                                 p.action.target = target.id;
+                                 p.face(target.group.position);
+                             } else {
+                                 // I have most HP, don't swap! Use Magic instead
+                                 choice = 1; 
+                             }
+                         }
+                     } else { 
+                         if (p.type === 'Loki') { if (p.rage.blue > p.rage.red && threats.length >= 2) choice = 2; else { const roll = Math.random(); if (roll < 0.4) choice = 1; else if (roll < 0.6) choice = 2; else if (roll < 0.75) choice = 3; else choice = 4; } } else { const isRed = p.rage.red >= p.rage.blue; choice = Math.random() < 0.6 ? (isRed ? 0 : 1) : (Math.random() < 0.9 ? (isRed ? 2 : 3) : 4); } 
+                     } 
+                     if (choice === 4 && p.fatigue >= 100) choice = (p.rage.red >= p.rage.blue) ? 0 : 1; 
+                     if (threats.length === 0 && !players.some(pl => pl.alive && pl.id !== idx && pl.rage.blue >= 99)) if (choice === 4 || choice === 2 || choice === 3) choice = (p.rage.red >= p.rage.blue) ? 0 : 1; 
+                     p.action.card = choice; p.action.selectionTime = Date.now(); 
+                 }
                  if (idx === myPlayerIndex && isAutoPlay) { if (chosenT !== -1 && chosenT !== selectedTargetId) { selectedTargetId = chosenT; window.updateHPUI(); } if (choice !== selectedSlot) window.selectCard(choice); }
             }
         });
@@ -1276,7 +1373,23 @@
             if (isTutorialMode) tutorialState = 'pick_target'; 
         }
         if (i === 2 || i === 3 || i === 4 || isMagUlt || (isTutorialMode && i === 6)) { 
-            p.action.target = myPlayerIndex; selectedTargetId = -1; 
+            // Fix for Loki Blue Ult auto-target in Tutorial/Normal
+            if (isMagUlt && p.type === 'Loki') {
+                const enemies = players.filter(e => e.id !== p.id && e.alive);
+                if (enemies.length > 0) {
+                     // Pick random if not selected or self
+                     if (selectedTargetId === -1 || selectedTargetId === p.id) {
+                         const rnd = enemies[Math.floor(Math.random() * enemies.length)];
+                         p.action.target = rnd.id;
+                         selectedTargetId = rnd.id;
+                     } else {
+                         p.action.target = selectedTargetId;
+                     }
+                }
+            } else {
+                p.action.target = myPlayerIndex; selectedTargetId = -1; 
+            }
+            
             if (isTutorialMode) { tutorialState = 'none'; if (tutorialTurnTimer) clearTimeout(tutorialTurnTimer); tutorialTurnTimer = setTimeout(() => endTurn(), 500); } 
         }
         if (isMultiplayer && !window.Online.isHost) window.Network.sendHost({ type: 'ACTION_SUBMIT', action: p.action });
