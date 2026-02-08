@@ -571,7 +571,7 @@
         
         <div id="scoreboard" style="display:none;"></div>
         <div id="top-announcer">
-            <div id="timer">10</div>
+            <div id="timer">8</div>
             <div id="move-display">準備中...</div>
         </div>
         <div id="card-description"></div> 
@@ -604,7 +604,7 @@
     const apiKey = ""; 
     const MAX_HP_ODIN = 500; 
     const MAX_HP_LOKI = 400;
-    const TURN_TIME = 10; 
+    const TURN_TIME = 8; 
     let BASE_CAM_Y = 280; let BASE_CAM_Z = 600;
     let DEFAULT_CAM_POS = new THREE.Vector3(0, BASE_CAM_Y, BASE_CAM_Z);
     const DEFAULT_LOOK_AT = new THREE.Vector3(0, 40, -20);
@@ -1499,7 +1499,8 @@
     }
     
     function cpuThink() {
-        if (gameState !== 'WAITING' || isTutorialMode || timeLeft > (TURN_TIME - 1) || timeLeft <= 4) return;
+        // AI Logic Update: Stop thinking if timeLeft <= 3
+        if (gameState !== 'WAITING' || isTutorialMode || timeLeft > (TURN_TIME - 1) || timeLeft <= 3) return;
         players.forEach((p, idx) => {
             if (!p.alive) return;
             const isCpu = (isMultiplayer && window.Online.playerMap[idx]?.isCpu) || (!isMultiplayer && idx !== 0) || (idx === myPlayerIndex && isAutoPlay);
