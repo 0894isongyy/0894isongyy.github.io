@@ -39,7 +39,6 @@
         <div>
             <h1 class="text-2xl font-bold text-yellow-400 drop-shadow-md">進擊的死人骨頭</h1>
             <p class="text-lg mt-2">生命值: <span id="hpDisplay" class="text-red-400 font-bold">100</span></p>
-            <!-- 新增雷擊等級顯示 -->
             <p class="text-lg mt-1 text-blue-300">雷擊等級: <span id="lightningDisplay" class="font-bold">0</span> / 10</p>
         </div>
         <div class="text-right">
@@ -81,6 +80,7 @@
     let gameState = 'playing';
     let kills = 0;
     const TARGET_KILLS = 1000;
+    let boss = null; // 宣告 Boss 變數
 
     // 輸入控制
     const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
@@ -89,7 +89,6 @@
     window.addEventListener('keydown', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
     window.addEventListener('keyup', e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
     
-    // 支援滑鼠與觸控移動
     canvas.addEventListener('mousedown', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
     canvas.addEventListener('mousemove', e => { if(pointer.active) { pointer.x = e.clientX; pointer.y = e.clientY; } });
     canvas.addEventListener('mouseup', () => { pointer.active = false; });
@@ -113,12 +112,11 @@
             this.attackRate = 30;
             
             // 特殊技能 (雷擊)
-            this.lightningLevel = 0;  // 最高 10 級
-            this.lightningTimer = 0;  // 每 2 秒 (120 幀) 發動一次
+            this.lightningLevel = 0;
+            this.lightningTimer = 0;
         }
 
         update() {
-            // 1. 移動邏輯
             let dx = 0, dy = 0;
             if (keys.w || keys.ArrowUp) dy -= 1;
             if (keys.s || keys.ArrowDown) dy += 1;
@@ -140,18 +138,21 @@
                 }
             }
 
-            // 邊界限制
             this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
             this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
 
-            // 2. 基礎攻擊：自動發射雙劍氣
+            // 合併所有可攻擊目標 (小兵 + Boss)
+            let allTargets = [...enemies];
+            if (boss && boss.hp > 0) allTargets.push(boss);
+
+            // 基礎攻擊：自動發射雙劍氣
             if (this.attackCooldown > 0) this.attackCooldown--;
-            if (this.attackCooldown <= 0 && enemies.length > 0) {
+            if (this.attackCooldown <= 0 && allTargets.length > 0) {
                 let closest = null;
                 let minDist = Infinity;
-                for (let e of enemies) {
-                    let d = Math.hypot(e.x - this.x, e.y - this.y);
-                    if (d < minDist) { minDist = d; closest = e; }
+                for (let t of allTargets) {
+                    let d = Math.hypot(t.x - this.x, t.y - this.y);
+                    if (d < minDist) { minDist = d; closest = t; }
                 }
 
                 if (closest && minDist < 600) {
@@ -162,27 +163,25 @@
                 }
             }
 
-            // 3. 特殊技能：自動雷擊 (每2秒發動)
+            // 特殊技能：自動雷擊 (每2秒發動)
             if (this.lightningLevel > 0) {
                 if (this.lightningTimer > 0) {
                     this.lightningTimer--;
                 } else {
-                    // 找出距離最近的敵人
-                    let sortedEnemies = [...enemies].sort((a, b) => {
+                    let sortedTargets = [...allTargets].sort((a, b) => {
                         let distA = Math.hypot(a.x - this.x, a.y - this.y);
                         let distB = Math.hypot(b.x - this.x, b.y - this.y);
                         return distA - distB;
                     });
                     
-                    // 根據等級決定要劈幾個敵人 (最多10個)
-                    let targets = sortedEnemies.slice(0, this.lightningLevel);
+                    let targets = sortedTargets.slice(0, this.lightningLevel);
                     
                     if (targets.length > 0) {
                         targets.forEach(t => {
-                            t.hp -= 20; // 雷擊傷害很高，足以秒殺目前的怪
-                            lightnings.push(new LightningEffect(t.x, 0, t.x, t.y)); // 從天上劈下來
+                            t.hp -= 20; 
+                            lightnings.push(new LightningEffect(t.x, 0, t.x, t.y));
                         });
-                        this.lightningTimer = 120; // 重新計時 2秒 (60幀 * 2)
+                        this.lightningTimer = 120; // 60幀 * 2 = 2秒
                     }
                 }
             }
@@ -191,22 +190,132 @@
         draw() {
             ctx.save();
             ctx.translate(this.x, this.y);
-            // 主角 (死人骨頭)
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
             ctx.fill();
             ctx.lineWidth = 3;
-            // 隨雷擊等級改變外框光環顏色
             ctx.strokeStyle = this.lightningLevel > 0 ? '#ffdf00' : '#4facfe'; 
             ctx.stroke();
             
-            // 骷髏臉
             ctx.fillStyle = '#000';
             ctx.beginPath(); ctx.arc(-6, -4, 4, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(6, -4, 4, 0, Math.PI*2); ctx.fill(); 
             ctx.fillRect(-4, 6, 8, 3);
             
+            ctx.restore();
+        }
+    }
+
+    class Boss {
+        constructor() {
+            // 從畫面上方進場
+            this.x = width / 2;
+            this.y = -50;
+            this.radius = 45; // 比小兵大很多
+            this.hp = 100;
+            this.maxHp = 100;
+            this.speed = 1.8;
+            this.color = '#8b0000'; // 深紅色
+            
+            // 衝刺相關屬性
+            this.dashTimer = 300; // 5秒 (300幀)
+            this.isDashing = false;
+            this.dashDuration = 0;
+            this.vx = 0;
+            this.vy = 0;
+            this.angle = Math.PI / 2; // 預設朝下
+        }
+
+        update() {
+            if (this.isDashing) {
+                // 衝刺狀態：高速往鎖定的方向移動
+                this.x += this.vx;
+                this.y += this.vy;
+                this.dashDuration--;
+                if (this.dashDuration <= 0) {
+                    this.isDashing = false;
+                    this.dashTimer = 300; // 重新計算 5 秒
+                }
+            } else {
+                // 正常狀態：朝向玩家移動
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const dist = Math.hypot(dx, dy);
+                this.angle = Math.atan2(dy, dx);
+
+                if (dist > 0) {
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                }
+
+                // 衝刺倒數
+                this.dashTimer--;
+                if (this.dashTimer <= 0) {
+                    this.isDashing = true;
+                    this.dashDuration = 30; // 衝刺持續半秒
+                    const dashSpeed = 15; // 衝刺極速
+                    this.vx = Math.cos(this.angle) * dashSpeed;
+                    this.vy = Math.sin(this.angle) * dashSpeed;
+                }
+            }
+
+            // 對玩家造成傷害判定
+            const distToPlayer = Math.hypot(player.x - this.x, player.y - this.y);
+            if (distToPlayer < this.radius + player.radius) {
+                // 如果在衝刺狀態，傷害更高
+                player.hp -= this.isDashing ? 2 : 0.8;
+                hpDisplay.innerText = Math.max(0, Math.floor(player.hp));
+                if (player.hp <= 0 && gameState === 'playing') {
+                    gameOver("你被 Boss 斬殺了！");
+                }
+            }
+
+            // 邊界限制
+            this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
+            this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            // 衝刺前 1 秒 (60幀) 閃爍紅光警告
+            if (!this.isDashing && this.dashTimer < 60) {
+                if (Math.floor(Date.now() / 100) % 2 === 0) {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI*2); ctx.fill();
+                }
+            }
+
+            ctx.rotate(this.angle); // 轉向玩家
+
+            // 畫 Boss 的巨劍 (伸在前面)
+            ctx.fillStyle = '#a9a9a9';
+            ctx.fillRect(10, -12, 70, 24); // 劍刃
+            ctx.fillStyle = '#d3d3d3';
+            ctx.beginPath(); ctx.moveTo(80, -12); ctx.lineTo(105, 0); ctx.lineTo(80, 12); ctx.fill(); // 劍尖
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(10, -20, 10, 40); // 劍格(護手)
+
+            // 畫 Boss 身體
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.stroke();
+
+            // 骷髏臉 (因為旋轉了，所以調整眼睛跟嘴巴位置朝向前方)
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(10, -15, 8, 0, Math.PI*2); ctx.fill(); // 左眼
+            ctx.beginPath(); ctx.arc(10, 15, 8, 0, Math.PI*2); ctx.fill();  // 右眼
+            ctx.fillRect(25, -10, 8, 20); // 嘴巴
+
+            // 血條 (反旋轉，確保血條永遠是水平顯示的)
+            ctx.rotate(-this.angle);
+            if (this.hp < this.maxHp) {
+                ctx.fillStyle = 'red'; ctx.fillRect(-50, -this.radius - 20, 100, 8);
+                ctx.fillStyle = '#0f0'; ctx.fillRect(-50, -this.radius - 20, 100 * (this.hp / this.maxHp), 8);
+            }
+
             ctx.restore();
         }
     }
@@ -247,7 +356,6 @@
                 this.y += (dy / dist) * this.speed;
             }
 
-            // 碰到玩家造成傷害
             if (dist < this.radius + player.radius) {
                 player.hp -= 0.5;
                 hpDisplay.innerText = Math.max(0, Math.floor(player.hp));
@@ -270,7 +378,6 @@
             ctx.beginPath(); ctx.arc(5, -3, 3, 0, Math.PI*2); ctx.fill();
             ctx.fillRect(-4, 4, 8, 2);
 
-            // 血條
             if (this.hp < this.maxHp) {
                 ctx.fillStyle = 'red'; ctx.fillRect(-15, -this.radius - 10, 30, 4);
                 ctx.fillStyle = '#0f0'; ctx.fillRect(-15, -this.radius - 10, 30 * (this.hp / this.maxHp), 4);
@@ -301,21 +408,19 @@
         }
     }
 
-    // 升級物品類別 (紅骷髏掉落)
     class Item {
         constructor(x, y) {
             this.x = x; this.y = y;
             this.radius = 12;
-            this.life = 600; // 存在 10 秒左右
+            this.life = 600; 
         }
         update() { this.life--; }
         draw() {
             ctx.save(); ctx.translate(this.x, this.y);
-            ctx.fillStyle = '#ffdf00'; // 黃金色的升級球
+            ctx.fillStyle = '#ffdf00'; 
             ctx.shadowBlur = 15; ctx.shadowColor = '#ffdf00';
             ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
             
-            // 裡面畫個小閃電符號
             ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
             ctx.beginPath(); ctx.moveTo(-3, -6); ctx.lineTo(4, -1); ctx.lineTo(-1, 2); ctx.lineTo(3, 7);
             ctx.lineTo(-4, 1); ctx.lineTo(1, -2); ctx.closePath(); ctx.fill();
@@ -323,11 +428,10 @@
         }
     }
 
-    // 雷擊特效類別
     class LightningEffect {
         constructor(x1, y1, x2, y2) {
             this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
-            this.life = 15; // 顯示 15 幀
+            this.life = 15; 
         }
         update() { this.life--; }
         draw() {
@@ -336,7 +440,6 @@
             ctx.shadowBlur = 20; ctx.shadowColor = '#00bfff';
             ctx.beginPath(); ctx.moveTo(this.x1, this.y1);
             
-            // 讓閃電有一點曲折感
             let midX = (this.x1 + this.x2)/2 + (Math.random() - 0.5) * 50;
             let midY = (this.y1 + this.y2)/2;
             ctx.lineTo(midX, midY); ctx.lineTo(this.x2, this.y2);
@@ -372,10 +475,13 @@
     function spawnEnemy() {
         if (gameState !== 'playing') return;
         
+        // 達到 1000 殺後，停止生成小兵，讓 Boss 單獨出場
+        if (kills >= TARGET_KILLS) return; 
+
         const rand = Math.random();
         let type = 'normal';
-        if (rand < 0.05) type = 'black';      // 5% 黑色
-        else if (rand < 0.20) type = 'red';   // 15% 紅色
+        if (rand < 0.05) type = 'black';      
+        else if (rand < 0.20) type = 'red';   
 
         enemies.push(new Enemy(type));
         let spawnRate = Math.max(100, 800 - kills * 0.5); 
@@ -383,7 +489,7 @@
     }
 
     function createExplosion(x, y, color) {
-        for(let i=0; i<10; i++) particles.push(new Particle(x, y, color));
+        for(let i=0; i<15; i++) particles.push(new Particle(x, y, color));
     }
 
     function gameOver(reason) {
@@ -396,9 +502,9 @@
 
     function victory() {
         gameState = 'victory';
-        messageTitle.innerText = "小兵清理完畢！";
+        messageTitle.innerText = "第一關破關！";
         messageTitle.className = "text-5xl font-bold mb-4 text-yellow-400";
-        messageSubtitle.innerText = "準備迎接 Boss... (原型展示結束)";
+        messageSubtitle.innerText = "你擊敗了巨人骨頭兵團的 Boss！";
         messageScreen.classList.remove('hidden'); messageScreen.classList.add('flex');
     }
 
@@ -415,12 +521,16 @@
         player.update();
         player.draw();
 
+        // 判斷是否召喚 Boss
+        if (kills >= TARGET_KILLS && !boss) {
+            boss = new Boss();
+        }
+
         // 處理升級物品
         for (let i = items.length - 1; i >= 0; i--) {
             let item = items[i];
             item.update();
             item.draw();
-            // 玩家吃物品
             if (Math.hypot(player.x - item.x, player.y - item.y) < player.radius + item.radius) {
                 if (player.lightningLevel < 10) {
                     player.lightningLevel++;
@@ -441,41 +551,59 @@
                 projectiles.splice(i, 1); continue;
             }
 
-            // 劍氣打敵人
             let hit = false;
-            for (let j = enemies.length - 1; j >= 0; j--) {
-                let e = enemies[j];
-                if (Math.hypot(p.x - e.x, p.y - e.y) < p.radius + e.radius) {
-                    e.hp -= p.damage;
-                    hit = true;
-                    e.x += p.vx * 0.5; // 輕微擊退
-                    e.y += p.vy * 0.5;
-                    break;
+            
+            // 劍氣打 Boss
+            if (boss && boss.hp > 0 && Math.hypot(p.x - boss.x, p.y - boss.y) < p.radius + boss.radius) {
+                boss.hp -= p.damage;
+                hit = true;
+                // Boss 很重，不會被劍氣擊退
+            }
+
+            // 劍氣打小兵
+            if (!hit) {
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (Math.hypot(p.x - e.x, p.y - e.y) < p.radius + e.radius) {
+                        e.hp -= p.damage;
+                        hit = true;
+                        e.x += p.vx * 0.5; 
+                        e.y += p.vy * 0.5;
+                        break;
+                    }
                 }
             }
+
             if (hit) projectiles.splice(i, 1);
         }
 
-        // 處理敵人更新與死亡邏輯
+        // 處理小兵更新與死亡邏輯
         for (let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
             e.update();
             
-            // 判斷是否死亡 (包含被劍氣打死或被雷劈死)
             if (e.hp <= 0) {
                 createExplosion(e.x, e.y, e.color);
-                
-                // 紅骷髏掉落升級物品
                 if (e.type === 'red') {
                     items.push(new Item(e.x, e.y));
                 }
-                
                 enemies.splice(i, 1);
                 kills++;
                 killCountDisplay.innerText = kills;
-                if (kills >= TARGET_KILLS) victory();
             } else {
-                e.draw(); // 沒死才畫出來
+                e.draw(); 
+            }
+        }
+
+        // 處理 Boss 更新與死亡邏輯
+        if (boss) {
+            boss.update();
+            if (boss.hp <= 0) {
+                createExplosion(boss.x, boss.y, boss.color);
+                boss = null;
+                victory(); // 擊敗 Boss 才算過關
+            } else {
+                boss.draw();
             }
         }
 
